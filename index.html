@@ -3,24 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Super Medieval Crossy Road - Multiplayer Kingdom Edition</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&family=Inter:wght@500;700;800;900&display=swap" rel="stylesheet">
+    <title>Super Medieval Crossy Road - Multiplayer Edition</title>
+    <!-- MQTT over WebSockets - Funcționează garantat pe Incognito, rețele diferite și orice calculator -->
+    <script src="https://unpkg.com/mqtt@5.3.5/dist/mqtt.min.js"></script>
     <style>
         :root {
-            --stone-dark: #120f0c;
-            --stone-panel: #1e1813;
-            --stone-border: #3d3126;
-            --gold-bright: #fde047;
-            --gold-burnished: #f59e0b;
-            --gold-dark: #b45309;
-            --crimson-royal: #dc2626;
-            --crimson-dark: #7f1d1d;
-            --emerald-arcane: #10b981;
-            --emerald-dark: #047857;
-            --cyan-frost: #22d3ee;
-            --parchment-light: #fef3c7;
+            --medieval-gold: #facc15;
+            --medieval-gold-dark: #b45309;
+            --panel-bg: rgba(15, 23, 42, 0.94);
+            --card-bg: rgba(30, 41, 59, 0.9);
+            --border-color: rgba(250, 204, 21, 0.35);
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-green: #22c55e;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
         }
 
         * {
@@ -29,180 +26,95 @@
             padding: 0;
             user-select: none;
             -webkit-user-select: none;
-            -webkit-touch-callout: none;
         }
 
         body {
-            background: radial-gradient(circle at top, #2b1d12 0%, #0c0907 80%);
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            color: #f8fafc;
-            min-height: 100vh;
+            background: radial-gradient(circle at top, #1e1b4b, #09090b);
             display: flex;
             justify-content: center;
             align-items: center;
+            min-height: 100vh;
+            font-family: 'Cinzel', 'Segoe UI', system-ui, -apple-system, serif;
+            color: var(--text-light);
             overflow: hidden;
-            padding: 6px;
-        }
-
-        .font-medieval {
-            font-family: 'Cinzel', Georgia, serif;
         }
 
         #app-wrapper {
             position: relative;
-            width: 560px;
-            height: 750px;
+            width: 580px;
+            height: 760px;
             max-width: 100vw;
-            max-height: 98vh;
-            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.95), 0 0 0 3px var(--gold-burnished), inset 0 0 0 2px #000;
+            max-height: 100vh;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
             border-radius: 16px;
             overflow: hidden;
-            background: var(--stone-dark);
+            border: 3px solid #78350f;
+            background: #14532d;
         }
 
         canvas {
             display: block;
             width: 100%;
             height: 100%;
-            touch-action: none;
         }
 
-        /* Emblema Regală Medievală */
-        .crest-badge {
-            width: 42px;
-            height: 42px;
-            background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
-            border: 2px solid #fde047;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45);
-            flex-shrink: 0;
-        }
-
-        /* ================= HUD ÎN TIMPUL MECIULUI ================= */
+        /* HUD IN-GAME */
         #hud-layer {
             position: absolute;
             inset: 0;
             pointer-events: none;
             display: none;
-            z-index: 10;
         }
 
-        .hud-top-left {
+        .hud-badge-left {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(18, 15, 12, 0.90);
-            backdrop-filter: blur(8px);
-            padding: 9px 13px;
-            border-radius: 12px;
-            border: 2px solid var(--gold-burnished);
-            min-width: 182px;
-            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.75);
+            top: 14px;
+            left: 14px;
+            background: rgba(15, 23, 42, 0.88);
+            border: 2px solid var(--medieval-gold);
+            border-radius: 10px;
+            padding: 8px 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
         }
 
-        .hud-score-main {
-            font-size: 20px;
-            font-weight: 900;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            line-height: 1.1;
-            font-family: 'Cinzel', serif;
-        }
-
-        .hud-score-main span.val {
-            color: var(--gold-bright);
+        .hud-score-text {
             font-size: 24px;
-            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            color: var(--medieval-gold);
+            text-shadow: 2px 2px 0 #000;
+            letter-spacing: 1px;
         }
 
-        .hud-sub-stats {
+        .hud-biome-name {
             font-size: 11px;
-            color: #d6d3d1;
+            color: #e2e8f0;
             font-weight: 700;
-            margin-top: 3px;
-            display: flex;
-            justify-content: space-between;
-            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .hud-biome-pill {
-            margin-top: 5px;
-            padding: 3px 8px;
-            border-radius: 6px;
-            background: rgba(245, 158, 11, 0.16);
-            border: 1px solid rgba(253, 224, 71, 0.4);
-            color: var(--gold-bright);
-            font-size: 11px;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        #active-powerups-hud {
-            margin-top: 6px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .pw-badge {
-            background: #1c1612;
-            border: 1px solid #44372c;
-            border-radius: 6px;
-            padding: 4px 6px;
-            font-size: 10px;
-            font-weight: 800;
-        }
-
-        .pw-bar-track {
-            width: 100%;
-            height: 4px;
-            background: #2e241d;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 3px;
-        }
-
-        .pw-bar-fill {
-            height: 100%;
-            transition: width 0.08s linear;
-        }
-
-        /* Clasament Live Dreapta-Sus */
         .hud-leaderboard {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 14px;
+            right: 14px;
             width: 205px;
-            background: rgba(18, 15, 12, 0.90);
-            backdrop-filter: blur(8px);
-            border-radius: 12px;
-            padding: 9px 11px;
-            border: 1px solid var(--stone-border);
-            border-top: 3px solid var(--gold-burnished);
+            background: rgba(15, 23, 42, 0.88);
+            border: 2px solid rgba(250, 204, 21, 0.4);
+            border-radius: 10px;
+            padding: 8px 10px;
             font-size: 12px;
-            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.75);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
         }
 
-        .hud-lb-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 10px;
+        .hud-lb-title {
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: var(--gold-bright);
-            font-weight: 900;
+            letter-spacing: 1.5px;
+            color: var(--medieval-gold);
+            font-weight: 800;
             margin-bottom: 6px;
-            border-bottom: 1px solid #332920;
-            padding-bottom: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            padding-bottom: 3px;
         }
 
         .hud-lb-row {
@@ -214,7 +126,7 @@
         }
 
         .hud-lb-row.dead {
-            opacity: 0.45;
+            opacity: 0.5;
             text-decoration: line-through;
         }
 
@@ -225,7 +137,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            max-width: 132px;
+            max-width: 145px;
         }
 
         .color-dot {
@@ -233,99 +145,81 @@
             height: 10px;
             border-radius: 3px;
             display: inline-block;
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.6);
             flex-shrink: 0;
         }
 
-        #sound-toggle-hud {
-            pointer-events: auto;
-            background: #29211a;
-            border: 1px solid var(--gold-burnished);
-            color: #fff;
-            padding: 2px 6px;
-            border-radius: 6px;
-            font-size: 11px;
-            cursor: pointer;
-        }
-
-        /* Bannere Dinamice pentru Biom & Evenimente Medievale */
-        #world-banner-container {
+        /* Banner Eveniment Global */
+        #event-banner {
             position: absolute;
-            top: 125px;
+            top: 80px;
             left: 50%;
             transform: translateX(-50%);
-            width: 92%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            pointer-events: none;
-        }
-
-        .medieval-scroll-banner {
-            background: linear-gradient(90deg, rgba(18,15,12,0.1) 0%, rgba(30,24,19,0.96) 15%, rgba(30,24,19,0.96) 85%, rgba(18,15,12,0.1) 100%);
-            border-top: 2px solid var(--gold-bright);
-            border-bottom: 2px solid var(--gold-bright);
-            padding: 7px 22px;
+            background: rgba(120, 53, 15, 0.95);
+            border: 2px solid var(--medieval-gold);
+            color: #fff;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+            display: none;
             text-align: center;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.75);
-            animation: pulseBanner 1.4s infinite alternate;
+            animation: pulseBanner 1s infinite alternate;
         }
 
         @keyframes pulseBanner {
-            0% { transform: scale(0.99); }
-            100% { transform: scale(1.02); }
+            from { transform: translateX(-50%) scale(0.96); }
+            to { transform: translateX(-50%) scale(1.04); }
         }
 
-        /* Spectator Mode Bar */
+        /* Spectator Bar */
         #spectator-bar {
             position: absolute;
-            bottom: 84px;
+            bottom: 90px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(18, 15, 12, 0.95);
-            border: 2px solid var(--gold-burnished);
-            padding: 9px 16px;
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid var(--medieval-gold);
+            padding: 10px 18px;
             border-radius: 12px;
             text-align: center;
             pointer-events: auto;
             display: none;
             width: 90%;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.7);
         }
 
         #spectator-bar h4 {
-            color: #f87171;
-            font-size: 13px;
-            font-weight: 900;
-            margin-bottom: 2px;
-            font-family: 'Cinzel', serif;
+            color: #ef4444;
+            font-size: 14px;
+            margin-bottom: 4px;
         }
 
         #spectator-bar p {
-            font-size: 12px;
-            color: #e7e5e4;
-            margin-bottom: 7px;
+            font-size: 13px;
+            color: #f8fafc;
+            margin-bottom: 8px;
         }
 
         .btn-mini {
-            background: #2b221a;
-            color: var(--parchment-light);
-            border: 1px solid var(--gold-burnished);
-            padding: 5px 11px;
-            border-radius: 7px;
-            font-size: 11px;
-            font-weight: 800;
+            background: #334155;
+            color: #fff;
+            border: 1px solid #64748b;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
             cursor: pointer;
-            transition: background 0.15s, transform 0.08s;
         }
 
         .btn-mini:hover {
-            background: var(--gold-burnished);
-            color: #000;
+            background: #475569;
         }
 
-        /* Controale D-Pad Medievale pe ecran */
+        /* D-Pad pentru Mobil */
         #dpad-controls {
             position: absolute;
             bottom: 12px;
@@ -337,162 +231,127 @@
         }
 
         .dpad-btn {
-            width: 56px;
-            height: 52px;
+            width: 54px;
+            height: 54px;
             border-radius: 12px;
-            background: rgba(24, 19, 15, 0.92);
-            border: 2px solid #574636;
-            color: var(--parchment-light);
-            font-size: 19px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 2px solid var(--border-color);
+            color: var(--medieval-gold);
+            font-size: 22px;
             font-weight: 900;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            box-shadow: 0 4px 0 #090705;
-            transition: transform 0.06s, background 0.12s, border-color 0.12s;
-            touch-action: manipulation;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.5);
+            transition: transform 0.08s;
         }
 
-        .dpad-btn.up-main {
-            width: 70px;
-            background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
-            border-color: #fde047;
-            color: #120f0c;
-            box-shadow: 0 4px 0 #78350f;
-        }
-
-        .dpad-btn:active, .dpad-btn.pressed {
+        .dpad-btn:active {
             transform: translateY(3px);
-            background: var(--gold-bright);
-            color: #000;
-            border-color: #fff;
+            background: rgba(250, 204, 21, 0.3);
         }
 
-        /* ================= ECRANE MENIU, LOBBY ȘI PODIUM ================= */
+        /* ECRANE OVERLAY (Meniu, Lobby, Podium) */
         .screen-overlay {
             position: absolute;
             inset: 0;
-            background: radial-gradient(circle at center, rgba(34, 26, 20, 0.96) 0%, rgba(14, 11, 8, 0.98) 100%);
-            backdrop-filter: blur(10px);
+            background: var(--panel-bg);
+            backdrop-filter: blur(8px);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 16px 18px;
+            padding: 24px;
             z-index: 20;
             overflow-y: auto;
         }
 
         .brand-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 8px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--stone-border);
+            text-align: center;
+            margin-bottom: 12px;
         }
 
         .brand-title {
-            font-size: 21px;
+            font-size: 32px;
             font-weight: 900;
-            letter-spacing: 0.6px;
-            color: #ffffff;
-            line-height: 1.1;
-            text-transform: uppercase;
-            font-family: 'Cinzel', serif;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-        }
-
-        .brand-title span.hl {
-            color: var(--gold-bright);
+            letter-spacing: 2px;
+            color: var(--medieval-gold);
+            text-shadow: 0 3px 0 #78350f, 0 6px 18px rgba(0,0,0,0.7);
         }
 
         .brand-subtitle {
-            font-size: 11px;
-            color: var(--gold-burnished);
-            font-weight: 800;
+            font-size: 12px;
+            color: #cbd5e1;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1.4px;
-            margin-top: 2px;
+            letter-spacing: 2px;
+            margin-top: 3px;
         }
 
         .card {
-            background: var(--stone-panel);
-            border: 1px solid var(--stone-border);
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 11px 13px;
-            margin-bottom: 8px;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            padding: 14px 16px;
+            margin-bottom: 12px;
         }
 
         .card-title {
             font-size: 11px;
-            font-weight: 900;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: var(--gold-bright);
-            margin-bottom: 7px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-family: 'Cinzel', serif;
+            letter-spacing: 1px;
+            color: var(--medieval-gold);
+            margin-bottom: 8px;
         }
 
         .input-group {
             display: flex;
             gap: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         input[type="text"] {
             flex: 1;
-            background: #0e0b08;
-            border: 2px solid #44362a;
-            color: var(--parchment-light);
-            padding: 9px 12px;
-            border-radius: 9px;
-            font-size: 14px;
+            background: #09090b;
+            border: 2px solid #475569;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 15px;
             font-weight: 700;
             outline: none;
-            transition: border-color 0.18s;
+            transition: border-color 0.2s;
         }
 
         input[type="text"]:focus {
-            border-color: var(--gold-bright);
+            border-color: var(--medieval-gold);
         }
 
         /* Selector Eroi Medievali */
         .skin-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
+            gap: 8px;
         }
 
         .skin-option {
-            background: #120e0b;
-            border: 2px solid #33281e;
-            border-radius: 9px;
-            padding: 6px 8px;
+            background: #09090b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 8px;
             display: flex;
             align-items: center;
-            gap: 7px;
+            gap: 8px;
             cursor: pointer;
-            font-size: 11px;
-            font-weight: 800;
-            color: #d6d3d1;
-            transition: all 0.14s;
-        }
-
-        .skin-option:hover {
-            border-color: #6b533b;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.15s;
         }
 
         .skin-option.active {
-            border-color: var(--gold-bright);
-            background: rgba(245, 158, 11, 0.18);
-            color: #ffffff;
-            box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+            border-color: var(--medieval-gold);
+            background: rgba(250, 204, 21, 0.15);
         }
 
         .skin-preview {
@@ -501,55 +360,25 @@
             border-radius: 5px;
             position: relative;
             flex-shrink: 0;
+            border: 1px solid rgba(0,0,0,0.5);
         }
 
-        /* Legendă Power-up-uri și Biomuri în Meniu */
-        .powerup-legend {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 6px;
-            font-size: 11px;
-        }
-
-        .pw-legend-item {
-            background: #120e0b;
-            border: 1px solid #2e241b;
-            border-radius: 8px;
-            padding: 5px 8px;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        .pw-icon-box {
-            width: 24px;
-            height: 24px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            flex-shrink: 0;
-            font-weight: 900;
-        }
-
-        /* Butoane Principale Medievale */
+        /* Butoane */
         .btn {
             width: 100%;
-            padding: 11px 15px;
-            font-size: 13px;
+            padding: 13px 18px;
+            font-size: 15px;
             font-weight: 900;
             border: none;
             border-radius: 10px;
             cursor: pointer;
-            transition: transform 0.08s, filter 0.15s;
+            color: #fff;
+            transition: transform 0.1s, filter 0.15s;
             display: inline-flex;
             justify-content: center;
             align-items: center;
             gap: 8px;
-            text-transform: uppercase;
             letter-spacing: 0.5px;
-            font-family: 'Cinzel', serif;
         }
 
         .btn:hover:not(:disabled) {
@@ -560,2723 +389,46 @@
             transform: translateY(3px);
         }
 
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .btn-gold {
-            background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
-            color: #120f0c;
-            box-shadow: 0 4px 0 #92400e;
+            background: linear-gradient(180deg, #facc15, #ca8a04);
+            color: #0f172a;
+            box-shadow: 0 4px 0 #854d0e;
         }
 
-        .btn-emerald {
-            background: linear-gradient(180deg, #34d399 0%, #059669 100%);
-            color: #06281e;
-            box-shadow: 0 4px 0 #065f46;
+        .btn-blue {
+            background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+            box-shadow: 0 4px 0 #1e3a8a;
         }
 
-        .btn-stone {
-            background: #2b221b;
-            color: var(--parchment-light);
-            border: 1px solid #574537;
-            box-shadow: 0 4px 0 #120e0b;
+        .btn-slate {
+            background: #334155;
+            box-shadow: 0 4px 0 #1e293b;
         }
 
-        .btn-crimson {
-            background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
-            color: #ffffff;
+        .btn-red {
+            background: linear-gradient(180deg, #ef4444, #b91c1c);
             box-shadow: 0 4px 0 #7f1d1d;
         }
 
-        /* Codul Camerei în Lobby */
+        /* Banner Cod Lobby */
         .lobby-code-banner {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #0e0b08;
-            border: 2px dashed var(--gold-burnished);
-            border-radius: 12px;
+            background: #09090b;
+            border: 2px dashed var(--medieval-gold);
+            border-radius: 10px;
             padding: 10px 14px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
 
         .code-text {
-            font-size: 26px;
+            font-size: 24px;
             font-weight: 900;
-            letter-spacing: 5px;
-            color: var(--gold-bright);
-            font-family: monospace;
-        }
-
-        .player-list {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            max-height: 220px;
-            overflow-y: auto;
-            padding-right: 4px;
-        }
-
-        .player-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #120e0b;
-            padding: 8px 12px;
-            border-radius: 9px;
-            border: 1px solid #33281e;
-        }
-
-        .player-info {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            font-weight: 800;
-            font-size: 13px;
-        }
-
-        .badge {
-            font-size: 10px;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-weight: 900;
-            text-transform: uppercase;
-        }
-
-        .badge-ready {
-            background: rgba(16, 185, 129, 0.2);
-            color: #34d399;
-            border: 1px solid #10b981;
-        }
-
-        .badge-wait {
-            background: #261f1a;
-            color: #a8a29e;
-            border: 1px solid #44372d;
-        }
-
-        .badge-host {
-            background: var(--gold-burnished);
-            color: #000;
-            font-size: 9px;
-            margin-left: 4px;
-        }
-
-        .status-toast {
-            font-size: 12px;
-            color: var(--gold-bright);
-            text-align: center;
-            min-height: 18px;
-            margin-top: 4px;
-            font-weight: 700;
-        }
-
-        /* Tabel Podium Final */
-        .podium-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin: 8px 0;
-            max-height: 320px;
-            overflow-y: auto;
-        }
-
-        .podium-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #120e0b;
-            padding: 10px 14px;
-            border-radius: 10px;
-            border-left: 4px solid #44372d;
-            border-top: 1px solid #2b221a;
-            border-right: 1px solid #2b221a;
-            border-bottom: 1px solid #2b221a;
-        }
-
-        .podium-row.rank-1 {
-            border-left-color: var(--gold-bright);
-            background: rgba(245, 158, 11, 0.15);
-        }
-
-        .podium-row.rank-2 {
-            border-left-color: #e2e8f0;
-        }
-
-        .podium-row.rank-3 {
-            border-left-color: #d97706;
-        }
-
-        .podium-death {
-            font-size: 11px;
-            color: #a8a29e;
-            font-weight: 600;
-            margin-top: 2px;
-        }
-
-        .row-buttons {
-            display: flex;
-            gap: 10px;
-        }
-    </style>
-</head>
-<body>
-
-<div id="app-wrapper">
-    <canvas id="gameCanvas" width="560" height="750"></canvas>
-
-    <!-- ================= HUD ÎN TIMPUL MECIULUI ================= -->
-    <div id="hud-layer">
-        <div class="hud-top-left">
-            <div class="hud-score-main">
-                <span>GLORIE:</span>
-                <span id="hud-my-score" class="val">0</span>
-            </div>
-            <div class="hud-sub-stats">
-                <span id="hud-room-label">REGATUL SOLO</span>
-                <span>RECORD: <strong id="hud-best-score" style="color:#fde047;">0</strong></span>
-            </div>
-            <div class="hud-biome-pill" id="hud-biome-indicator">
-                <span>🏰</span>
-                <span id="hud-biome-name">Ținutul Coroanei</span>
-            </div>
-            <div id="active-powerups-hud"></div>
-        </div>
-
-        <div class="hud-leaderboard">
-            <div class="hud-lb-header">
-                <span>⚔️ Ordinea Cavalerilor</span>
-                <button id="sound-toggle-hud" title="Sunet On/Off">🔊</button>
-            </div>
-            <div id="hud-lb-content"></div>
-        </div>
-
-        <!-- Bannere dinamice pentru schimbarea de Biom și Evenimente Aleatorii -->
-        <div id="world-banner-container">
-            <div id="biome-banner" class="medieval-scroll-banner" style="display:none;">
-                <div style="font-size:10px; color:#fde047; font-weight:800; letter-spacing:1.5px; text-transform:uppercase;">Tărâm Nou Descoperit</div>
-                <div id="biome-banner-title" class="font-medieval" style="font-size:17px; font-weight:900; color:#fff;">🏰 Ținutul Coroanei</div>
-            </div>
-            <div id="event-banner" class="medieval-scroll-banner" style="display:none; border-color:#ef4444;">
-                <div style="font-size:10px; color:#fca5a5; font-weight:800; letter-spacing:1.2px; text-transform:uppercase;">⚠️ Eveniment în Regat</div>
-                <div id="event-banner-title" class="font-medieval" style="font-size:15px; font-weight:900; color:#fde047;">🐉 Umbra Dragonului!</div>
-            </div>
-        </div>
-
-        <div id="spectator-bar">
-            <h4 id="spec-reason">Ai căzut în luptă!</h4>
-            <p>Mod Spectator — Urmărești pe: <strong id="spec-target-name" style="color:#fde047;">-</strong></p>
-            <button class="btn-mini" id="btn-switch-spec">Schimbă Cavalerul (TAB)</button>
-        </div>
-
-        <div id="dpad-controls">
-            <button class="dpad-btn" data-dir="left" title="Stânga (A / Săgeată Stânga)">◀</button>
-            <button class="dpad-btn" data-dir="down" title="Înapoi (S / Săgeată Jos)">▼</button>
-            <button class="dpad-btn up-main" data-dir="up" title="Înainte (W / Săgeată Sus)">▲</button>
-            <button class="dpad-btn" data-dir="right" title="Dreapta (D / Săgeată Dreapta)">▶</button>
-        </div>
-    </div>
-
-    <!-- ================= ECRAN 1: MENIU PRINCIPAL ================= -->
-    <div id="menu-screen" class="screen-overlay">
-        <div>
-            <div class="brand-header">
-                <div class="crest-badge">⚔️</div>
-                <div>
-                    <div class="brand-title">SUPER <span class="hl">MEDIEVAL</span> CROSSY ROAD</div>
-                    <div class="brand-subtitle">4 Biomuri • Evenimente Epice • Multiplayer Lobby</div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">
-                    <span>1. Alege-ți Eroul Medieval</span>
-                    <span style="color:#a8a29e; font-size:10px; font-family:'Inter',sans-serif;">RECORD: <strong id="menu-best-score" style="color:#fde047;">0</strong></span>
-                </div>
-                <div class="input-group">
-                    <input type="text" id="player-name-input" maxlength="14" placeholder="Numele Eroului (ex: Sir Călin)">
-                </div>
-                <div class="skin-grid" id="skin-selector"></div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">2. Taverna Multiplayer (Online P2P &amp; Multi-Tab)</div>
-                <button class="btn btn-gold" id="btn-create-lobby" style="margin-bottom: 8px;">
-                    👑 Creează un Lobby Regal
-                </button>
-
-                <div class="input-group" style="margin-bottom: 0;">
-                    <input type="text" id="join-code-input" maxlength="6" placeholder="COD CAMERĂ (ex: KNG7X)" style="text-transform: uppercase; text-align: center; letter-spacing: 2px;">
-                    <button class="btn btn-emerald" id="btn-join-lobby" style="width: auto; padding: 0 16px;">
-                        Intră în Lobby
-                    </button>
-                </div>
-                <div class="status-toast" id="menu-status"></div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">3. Artefacte &amp; Evenimente în Regat</div>
-                <div class="powerup-legend">
-                    <div class="pw-legend-item">
-                        <div class="pw-icon-box" style="background:rgba(253,224,71,0.18); border:1px solid #fde047; color:#fde047;">🛡️</div>
-                        <div><strong style="color:#fde047;">Scutul Sfânt (6s)</strong><br><span style="color:#a8a29e;">Imun la calești/săgeți + pod pe apă</span></div>
-                    </div>
-                    <div class="pw-legend-item">
-                        <div class="pw-icon-box" style="background:rgba(34,211,238,0.15); border:1px solid #22d3ee; color:#22d3ee;">⏳</div>
-                        <div><strong style="color:#22d3ee;">Clepsidra Înghețului</strong><br><span style="color:#a8a29e;">Încetinește caleștile și catapultele</span></div>
-                    </div>
-                    <div class="pw-legend-item">
-                        <div class="pw-icon-box" style="background:rgba(16,185,129,0.15); border:1px solid #10b981; color:#34d399;">📜</div>
-                        <div><strong style="color:#34d399;">Pergament (+5) &amp; Pocal (+2)</strong><br><span style="color:#a8a29e;">Glorie bonus în clasament</span></div>
-                    </div>
-                    <div class="pw-legend-item">
-                        <div class="pw-icon-box" style="background:rgba(239,68,68,0.18); border:1px solid #ef4444; color:#fca5a5;">🐉</div>
-                        <div><strong style="color:#fca5a5;">Evenimente Live</strong><br><span style="color:#a8a29e;">Dragoni, Ploaie de Săgeți, Aur x2</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <button class="btn btn-stone" id="btn-solo-play">
-            🏇 Cruciadă Rapidă Solo (Cu Cavaleri AI)
-        </button>
-    </div>
-
-    <!-- ================= ECRAN 2: SALA TRONULUI (LOBBY) ================= -->
-    <div id="lobby-screen" class="screen-overlay" style="display: none;">
-        <div>
-            <div class="brand-header">
-                <div class="crest-badge">🏰</div>
-                <div>
-                    <div class="brand-title">SALA <span class="hl">TRONULUI</span> (LOBBY)</div>
-                    <div class="brand-subtitle" id="lobby-conn-type">Sincronizare WebRTC P2P + Multi-Tab Activă</div>
-                </div>
-            </div>
-
-            <div class="lobby-code-banner">
-                <div>
-                    <div style="font-size: 10px; color: #a8a29e; font-weight: 800; text-transform: uppercase;">Codul Cetății pentru Tovarăși:</div>
-                    <div class="code-text" id="lobby-code-display">-----</div>
-                </div>
-                <button class="btn btn-gold" id="btn-copy-code" style="width: auto; padding: 9px 14px; font-size: 12px;">
-                    📋 Copiază Codul
-                </button>
-            </div>
-
-            <div class="card">
-                <div class="card-title">
-                    <span>Cavaleri în Cetate (<span id="lobby-player-count">1</span>/8)</span>
-                    <div id="host-bot-controls" style="display: flex; gap: 6px;">
-                        <button class="btn-mini" id="btn-add-bot">+ Cavaler AI</button>
-                        <button class="btn-mini" id="btn-remove-bot">- Bot</button>
-                    </div>
-                </div>
-                <div class="player-list" id="lobby-player-list"></div>
-            </div>
-
-            <div class="status-toast" id="lobby-status-msg">Trimite codul tovarășilor tăi pentru a intra în aceeași aventură!</div>
-        </div>
-
-        <div class="row-buttons">
-            <button class="btn btn-crimson" id="btn-leave-lobby" style="flex: 0.42;">Părăsește</button>
-            <button class="btn btn-emerald" id="btn-toggle-ready" style="flex: 1;">✓ Pregătit de Luptă!</button>
-            <button class="btn btn-gold" id="btn-start-match" style="flex: 1; display: none;">⚔️ ÎNCEPE CRUCIADA</button>
-        </div>
-    </div>
-
-    <!-- ================= ECRAN 3: PODIUMUL REGAL ================= -->
-    <div id="results-screen" class="screen-overlay" style="display: none;">
-        <div>
-            <div class="brand-header">
-                <div class="crest-badge">🏆</div>
-                <div>
-                    <div class="brand-title">CRONICA <span class="hl">BĂTĂLIEI</span></div>
-                    <div class="brand-subtitle" id="results-winner-sub">Campionul Regatului: -</div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">Clasamentul Oficial al Cruciadei</div>
-                <div class="podium-list" id="podium-container"></div>
-            </div>
-        </div>
-
-        <div class="row-buttons">
-            <button class="btn btn-stone" id="btn-back-to-lobby" style="flex: 1;">🏰 Înapoi în Lobby</button>
-            <button class="btn btn-gold" id="btn-rematch-host" style="flex: 1;">🔄 Bătălie Nouă</button>
-        </div>
-    </div>
-</div>
-
-<script>
-(() => {
-    // =========================================================================
-    // 1. CONFIGURARE GRILĂ, CELE 4 BIOMURI ȘI CEI 6 EROI MEDIEVALI
-    // =========================================================================
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-
-    const TILE_SIZE = 40;
-    const COLS = canvas.width / TILE_SIZE;  // 14 coloane (0..13)
-    const ROWS = Math.ceil(canvas.height / TILE_SIZE);
-
-    const SKINS = [
-        { id: 'knight', name: 'Cavaler Templier', body: '#e2e8f0', secondary: '#94a3b8', accent: '#ef4444', visor: '#facc15' },
-        { id: 'wizard', name: 'Arhimag Arcan',    body: '#2563eb', secondary: '#1d4ed8', accent: '#22d3ee', visor: '#fde047' },
-        { id: 'jester', name: 'Bufonul Regal',    body: '#d946ef', secondary: '#7e22ce', accent: '#facc15', visor: '#fef08a' },
-        { id: 'viking', name: 'Berserker Nord',   body: '#d97706', secondary: '#78350f', accent: '#fef3c7', visor: '#fbbf24' },
-        { id: 'plague', name: 'Doctorul Ciumei',  body: '#1e293b', secondary: '#0f172a', accent: '#4ade80', visor: '#f8fafc' },
-        { id: 'king',   name: 'Regele Aurit',     body: '#facc15', secondary: '#b91c1c', accent: '#fef08a', visor: '#dc2626' }
-    ];
-
-    const BIOMES = [
-        {
-            id: 'meadows',
-            name: 'Ținutul Coroanei',
-            icon: '🏰',
-            grassEven: '#2d6a4f',
-            grassOdd: '#24553f',
-            roadFill: '#292524',
-            roadFrozen: '#164e63',
-            roadLine: '#57534e',
-            riverEven: '#0284c7',
-            riverOdd: '#0369a1',
-            ambientColor: '#fde047',
-            ambientMode: 'firefly'
-        },
-        {
-            id: 'swamp',
-            name: 'Mlaștina Blestemată',
-            icon: '🧪',
-            grassEven: '#2b1d38',
-            grassOdd: '#21152b',
-            roadFill: '#1c1917',
-            roadFrozen: '#155e75',
-            roadLine: '#44403c',
-            riverEven: '#15803d',
-            riverOdd: '#166534',
-            ambientColor: '#4ade80',
-            ambientMode: 'spores'
-        },
-        {
-            id: 'frost',
-            name: 'Trecătoarea Înghețată',
-            icon: '❄️',
-            grassEven: '#64748b',
-            grassOdd: '#475569',
-            roadFill: '#1e293b',
-            roadFrozen: '#0891b2',
-            roadLine: '#94a3b8',
-            riverEven: '#0e7490',
-            riverOdd: '#155e75',
-            ambientColor: '#e0f2fe',
-            ambientMode: 'snow'
-        },
-        {
-            id: 'volcano',
-            name: 'Citadela Draconică',
-            icon: '🔥',
-            grassEven: '#2b161b',
-            grassOdd: '#1f1014',
-            roadFill: '#18181b',
-            roadFrozen: '#1e3a8a',
-            roadLine: '#ea580c',
-            riverEven: '#c2410c',
-            riverOdd: '#9a3412',
-            ambientColor: '#fb923c',
-            ambientMode: 'embers'
-        }
-    ];
-
-    const BOT_NAMES = [
-        'Sir Lancelot [BOT]',
-        'Merlin Arcanul [BOT]',
-        'Ragnar Lothbrok [BOT]',
-        'Regele Arthur [BOT]',
-        'Lady Morgana [BOT]',
-        'Robin Hood [BOT]'
-    ];
-
-    function getBiomeForRow(gridY) {
-        const idx = Math.floor((Math.max(0, gridY) % 100) / 25);
-        return BIOMES[idx] || BIOMES[0];
-    }
-
-    // =========================================================================
-    // 2. SINTETIZATOR AUDIO MEDIEVAL (WEB AUDIO API)
-    // =========================================================================
-    class SoundSystem {
-        constructor() {
-            this.ctx = null;
-            this.muted = false;
-        }
-        init() {
-            if (!this.ctx) {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (AudioCtx) this.ctx = new AudioCtx();
-            }
-            if (this.ctx && this.ctx.state === 'suspended') {
-                this.ctx.resume();
-            }
-        }
-        playHop() {
-            if (this.muted) return;
-            this.init();
-            if (!this.ctx) return;
-            try {
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(260, now);
-                osc.frequency.exponentialRampToValueAtTime(520, now + 0.065);
-                gain.gain.setValueAtTime(0.11, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.075);
-            } catch (_) {}
-        }
-        playPowerup(type) {
-            if (this.muted) return;
-            this.init();
-            if (!this.ctx) return;
-            try {
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = type === 'goblet' ? 'sine' : 'triangle';
-                const base = type === 'frost' ? 440 : (type === 'shield' ? 330 : 520);
-                osc.frequency.setValueAtTime(base, now);
-                osc.frequency.setValueAtTime(base * 1.25, now + 0.06);
-                osc.frequency.exponentialRampToValueAtTime(base * 1.75, now + 0.18);
-                gain.gain.setValueAtTime(0.15, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.21);
-            } catch (_) {}
-        }
-        playFanfare() {
-            if (this.muted) return;
-            this.init();
-            if (!this.ctx) return;
-            try {
-                const now = this.ctx.currentTime;
-                const notes = [293.66, 369.99, 440.0, 587.33];
-                notes.forEach((freq, idx) => {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(freq, now + idx * 0.07);
-                    gain.gain.setValueAtTime(0.08, now + idx * 0.07);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.18);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start(now + idx * 0.07);
-                    osc.stop(now + idx * 0.07 + 0.19);
-                });
-            } catch (_) {}
-        }
-        playDragonRoar() {
-            if (this.muted) return;
-            this.init();
-            if (!this.ctx) return;
-            try {
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(135, now);
-                osc.frequency.linearRampToValueAtTime(62, now + 0.55);
-                gain.gain.setValueAtTime(0.16, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.62);
-            } catch (_) {}
-        }
-        playShieldDeflect() {
-            if (this.muted) return;
-            this.init();
-            if (!this.ctx) return;
-            try {
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(580, now);
-                osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
-                gain.gain.setValueAtTime(0.14, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.15);
-            } catch (_) {}
-        }
-        playEliminated() {
-            if (this.muted) return;
-            this.init();
-            if (!this.ctx) return;
-            try {
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(170, now);
-                osc.frequency.exponentialRampToValueAtTime(45, now + 0.28);
-                gain.gain.setValueAtTime(0.18, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.30);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.31);
-            } catch (_) {}
-        }
-    }
-
-    const sfx = new SoundSystem();
-    const soundToggleBtn = document.getElementById('sound-toggle-hud');
-    soundToggleBtn.addEventListener('click', () => {
-        sfx.muted = !sfx.muted;
-        soundToggleBtn.innerText = sfx.muted ? '🔇' : '🔊';
-        soundToggleBtn.blur();
-    });
-
-    // =========================================================================
-    // 3. GENERATOR DETERMINIST (SEEDED PRNG - MULBERRY32)
-    // =========================================================================
-    function mulberry32(seed) {
-        let a = seed >>> 0;
-        return function() {
-            a |= 0;
-            a = (a + 0x6D2B79F5) | 0;
-            let t = Math.imul(a ^ (a >>> 15), 1 | a);
-            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-        };
-    }
-
-    // =========================================================================
-    // 4. STAREA JUCĂTORULUI, A LOBBY-ULUI ȘI A EVENIMENTELOR MONDIALE
-    // =========================================================================
-    const myId = 'p_' + Math.random().toString(36).substring(2, 9);
-    let myName = 'Sir_' + Math.floor(10 + Math.random() * 89);
-    let mySkinId = 'knight';
-    let personalBest = 0;
-
-    const nameInput = document.getElementById('player-name-input');
-    nameInput.value = myName;
-
-    let appState = 'MENU'; // 'MENU' | 'LOBBY' | 'PLAYING' | 'RESULTS'
-    let isSoloMode = false;
-
-    let roomCode = '';
-    let isHost = false;
-    let peer = null;
-    let hostConnection = null;
-    let clientConnections = new Map();
-    let broadcastChannel = null;
-    let processedPackets = new Set();
-
-    let lobbyPlayers = new Map();
-
-    // Variabile de Meci
-    let matchSeed = 77777;
-    let matchStartLocalTime = 0;
-    let elapsedMatchTime = 0;
-    let roadVirtualTime = 0;
-    let trafficFreezeUntil = 0;
-
-    let lanes = new Map();
-    let highestGeneratedRow = -1;
-    let lastGrassSafeCols = [5, 6, 7, 8];
-    let lastRiverDir = 1;
-
-    // Evenimente Aleatorii ("Random Stuff Happening") & Atmosferă
-    let currentDisplayedBiomeId = 'meadows';
-    let biomeBannerTimer = 0;
-    let activeWorldEvent = null; // { windowIdx, type, title, startTime, endTime, targets, arrowsResolved }
-    let lastTriggeredEventWindow = -1;
-
-    let floatingTexts = [];
-    let particles = [];
-    let ambientParticles = [];
-    let cameraY = 0;
-    let spectatingPlayerId = null;
-    let lastFrameTime = performance.now();
-    let syncAccumulator = 0;
-
-    // Inițializare particule ambientale
-    for (let i = 0; i < 32; i++) {
-        ambientParticles.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            vx: (Math.random() - 0.5) * 18,
-            vy: -15 - Math.random() * 25,
-            size: 2 + Math.random() * 2.5,
-            phase: Math.random() * Math.PI * 2
-        });
-    }
-
-    // =========================================================================
-    // 5. UI MENIU & SELECTOR DE EROI MEDIEVALI
-    // =========================================================================
-    function renderSkinSelector() {
-        const container = document.getElementById('skin-selector');
-        container.innerHTML = '';
-        SKINS.forEach(skin => {
-            const div = document.createElement('div');
-            div.className = 'skin-option' + (skin.id === mySkinId ? ' active' : '');
-            div.innerHTML = `
-                <div class="skin-preview" style="background:${skin.body}; border: 2px solid ${skin.secondary};">
-                    <span style="position:absolute; top:2px; left:4px; width:10px; height:4px; background:${skin.accent}; border-radius:2px;"></span>
-                </div>
-                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${skin.name}</span>
-            `;
-            div.addEventListener('click', () => {
-                mySkinId = skin.id;
-                renderSkinSelector();
-            });
-            container.appendChild(div);
-        });
-    }
-    renderSkinSelector();
-
-    nameInput.addEventListener('input', () => {
-        const val = nameInput.value.trim();
-        if (val) myName = val;
-    });
-
-    function getSkin(skinId) {
-        return SKINS.find(s => s.id === skinId) || SKINS[0];
-    }
-
-    function showScreen(screenName) {
-        appState = screenName;
-        document.getElementById('menu-screen').style.display = screenName === 'MENU' ? 'flex' : 'none';
-        document.getElementById('lobby-screen').style.display = screenName === 'LOBBY' ? 'flex' : 'none';
-        document.getElementById('results-screen').style.display = screenName === 'RESULTS' ? 'flex' : 'none';
-        document.getElementById('hud-layer').style.display = screenName === 'PLAYING' ? 'block' : 'none';
-    }
-
-    function escapeHtml(str) {
-        return String(str).replace(/[&<>"']/g, s => ({
-            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-        }[s]));
-    }
-
-    function copyRoomCodeToClipboard() {
-        const tempInput = document.createElement('textarea');
-        tempInput.value = roomCode;
-        tempInput.style.position = 'fixed';
-        tempInput.style.opacity = '0';
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        try {
-            document.execCommand('copy');
-        } catch (_) {}
-        document.body.removeChild(tempInput);
-
-        const btn = document.getElementById('btn-copy-code');
-        btn.innerText = '✓ Cod Copiat!';
-        setTimeout(() => { btn.innerText = '📋 Copiază Codul'; }, 1800);
-    }
-
-    // =========================================================================
-    // 6. NETWORKING P2P (PeerJS + BroadcastChannel Multi-Tab)
-    // =========================================================================
-    function makePacketId() {
-        return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
-    }
-
-    function setupLocalBroadcast(code) {
-        if (broadcastChannel) {
-            broadcastChannel.close();
-        }
-        if ('BroadcastChannel' in window) {
-            broadcastChannel = new BroadcastChannel('medieval_crossy_room_' + code);
-            broadcastChannel.onmessage = (ev) => {
-                if (ev.data && ev.data.type) {
-                    handleNetworkPacket(ev.data, null);
-                }
-            };
-        }
-    }
-
-    function sendPacket(packet, targetConn = null) {
-        if (!packet.pktId) packet.pktId = makePacketId();
-        processedPackets.add(packet.pktId);
-        if (processedPackets.size > 500) {
-            const first = processedPackets.values().next().value;
-            processedPackets.delete(first);
-        }
-
-        if (broadcastChannel && !targetConn) {
-            try { broadcastChannel.postMessage(packet); } catch (_) {}
-        }
-
-        if (targetConn && targetConn.open) {
-            targetConn.send(packet);
-        } else if (isHost) {
-            for (const conn of clientConnections.values()) {
-                if (conn && conn.open) conn.send(packet);
-            }
-        } else if (hostConnection && hostConnection.open) {
-            hostConnection.send(packet);
-        }
-    }
-
-    function createDefaultPlayerObj(id, name, skinId, hostFlag, botFlag) {
-        return {
-            id,
-            name,
-            skinId,
-            isHost: hostFlag,
-            ready: true,
-            isBot: botFlag,
-            col: 6,
-            gridY: 0,
-            x: 6 * TILE_SIZE,
-            alive: true,
-            maxRow: 0,
-            bonusPoints: 0,
-            score: 0,
-            itemsCollected: 0,
-            shieldUntil: 0,
-            deathReason: '',
-            jumpProgress: 1,
-            botCooldown: 0.38
-        };
-    }
-
-    function handleNetworkPacket(pkt, sourceConn) {
-        if (!pkt || !pkt.type) return;
-        if (pkt.pktId && processedPackets.has(pkt.pktId)) return;
-        if (pkt.pktId) processedPackets.add(pkt.pktId);
-
-        if (isHost && sourceConn) {
-            for (const conn of clientConnections.values()) {
-                if (conn !== sourceConn && conn.open) conn.send(pkt);
-            }
-            if (broadcastChannel) {
-                try { broadcastChannel.postMessage(pkt); } catch (_) {}
-            }
-        }
-
-        switch (pkt.type) {
-            case 'JOIN_REQUEST': {
-                if (!isHost) return;
-                const p = pkt.player;
-                if (sourceConn) clientConnections.set(p.id, sourceConn);
-                lobbyPlayers.set(p.id, createDefaultPlayerObj(p.id, p.name, p.skinId, false, false));
-                broadcastLobbyState();
-                break;
-            }
-
-            case 'LOBBY_STATE': {
-                if (isHost) return;
-                lobbyPlayers.clear();
-                pkt.players.forEach(p => lobbyPlayers.set(p.id, p));
-                if (appState === 'MENU') showScreen('LOBBY');
-                updateLobbyUI();
-                break;
-            }
-
-            case 'PLAYER_READY_TOGGLE': {
-                const p = lobbyPlayers.get(pkt.playerId);
-                if (p) {
-                    p.ready = pkt.ready;
-                    p.skinId = pkt.skinId || p.skinId;
-                    p.name = pkt.name || p.name;
-                    if (isHost) broadcastLobbyState();
-                    else updateLobbyUI();
-                }
-                break;
-            }
-
-            case 'PLAYER_LEAVE': {
-                lobbyPlayers.delete(pkt.playerId);
-                clientConnections.delete(pkt.playerId);
-                if (isHost) broadcastLobbyState();
-                else updateLobbyUI();
-                break;
-            }
-
-            case 'START_MATCH': {
-                beginMultiplayerMatch(pkt.seed, pkt.spawnAssignments);
-                break;
-            }
-
-            case 'PLAYER_STATE': {
-                if (pkt.playerId === myId) return;
-                const p = lobbyPlayers.get(pkt.playerId);
-                if (p) {
-                    p.col = pkt.col;
-                    p.gridY = pkt.gridY;
-                    p.x = pkt.x;
-                    p.maxRow = pkt.maxRow ?? p.maxRow;
-                    p.bonusPoints = pkt.bonusPoints ?? p.bonusPoints;
-                    p.score = pkt.score;
-                    p.itemsCollected = pkt.itemsCollected ?? p.itemsCollected;
-                    p.shieldUntil = pkt.shieldUntil ?? p.shieldUntil;
-                    p.alive = pkt.alive;
-                    p.deathReason = pkt.deathReason || p.deathReason;
-                    p.jumpProgress = 1;
-                    updateLiveLeaderboard();
-                    checkAllPlayersDead();
-                }
-                break;
-            }
-
-            case 'ITEM_PICKUP': {
-                const lane = getLane(pkt.gridY);
-                if (lane && lane.powerup && !lane.powerup.collected) {
-                    lane.powerup.collected = true;
-                }
-                const collector = lobbyPlayers.get(pkt.playerId);
-                if (collector && pkt.playerId !== myId) {
-                    applyPowerupEffect(collector, pkt.itemType, pkt.gridY, pkt.col, false);
-                }
-                break;
-            }
-
-            case 'RETURN_TO_LOBBY': {
-                showScreen('LOBBY');
-                updateLobbyUI();
-                break;
-            }
-        }
-    }
-
-    function broadcastLobbyState() {
-        if (!isHost) return;
-        sendPacket({
-            type: 'LOBBY_STATE',
-            players: Array.from(lobbyPlayers.values())
-        });
-        updateLobbyUI();
-    }
-
-    function createLobby() {
-        myName = nameInput.value.trim() || myName;
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        roomCode = '';
-        for (let i = 0; i < 5; i++) {
-            roomCode += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-
-        isHost = true;
-        isSoloMode = false;
-        lobbyPlayers.clear();
-        clientConnections.clear();
-
-        lobbyPlayers.set(myId, createDefaultPlayerObj(myId, myName, mySkinId, true, false));
-
-        setupLocalBroadcast(roomCode);
-        showScreen('LOBBY');
-        updateLobbyUI();
-
-        const statusEl = document.getElementById('lobby-status-msg');
-        statusEl.innerText = 'Se deschid porțile cetății P2P...';
-
-        if (typeof Peer !== 'undefined') {
-            if (peer) peer.destroy();
-            peer = new Peer('cr-medieval-lobby-' + roomCode);
-            peer.on('open', () => {
-                statusEl.innerText = 'Cetatea Online este deschisă! Trimite codul tovarășilor tăi.';
-            });
-            peer.on('connection', (conn) => {
-                conn.on('data', (data) => handleNetworkPacket(data, conn));
-                conn.on('close', () => {
-                    for (const [pid, c] of clientConnections.entries()) {
-                        if (c === conn) {
-                            lobbyPlayers.delete(pid);
-                            clientConnections.delete(pid);
-                            broadcastLobbyState();
-                            break;
-                        }
-                    }
-                });
-            });
-            peer.on('error', () => {
-                statusEl.innerText = 'Lobby Multi-Tab Local Activ.';
-            });
-        }
-    }
-
-    function joinLobby(codeInput) {
-        const cleanCode = codeInput.trim().toUpperCase();
-        if (cleanCode.length < 3) {
-            document.getElementById('menu-status').innerText = 'Introdu un cod de cetate valid (5 caractere)!';
-            return;
-        }
-
-        myName = nameInput.value.trim() || myName;
-        roomCode = cleanCode;
-        isHost = false;
-        isSoloMode = false;
-        lobbyPlayers.clear();
-
-        document.getElementById('menu-status').innerText = 'Se caută cetatea ' + roomCode + '...';
-        setupLocalBroadcast(roomCode);
-
-        sendPacket({
-            type: 'JOIN_REQUEST',
-            player: { id: myId, name: myName, skinId: mySkinId }
-        });
-
-        if (typeof Peer !== 'undefined') {
-            if (peer) peer.destroy();
-            peer = new Peer();
-            peer.on('open', () => {
-                const conn = peer.connect('cr-medieval-lobby-' + roomCode, { reliable: true });
-                hostConnection = conn;
-                conn.on('open', () => {
-                    sendPacket({
-                        type: 'JOIN_REQUEST',
-                        player: { id: myId, name: myName, skinId: mySkinId }
-                    }, conn);
-                });
-                conn.on('data', (data) => handleNetworkPacket(data, conn));
-                conn.on('close', () => {
-                    if (appState !== 'MENU') {
-                        leaveLobby();
-                        document.getElementById('menu-status').innerText = 'Regele (Host-ul) a închis cetatea.';
-                    }
-                });
-            });
-            peer.on('error', () => {
-                if (appState === 'MENU') {
-                    document.getElementById('menu-status').innerText = 'Cetatea ' + roomCode + ' nu a fost găsită.';
-                }
-            });
-        }
-    }
-
-    function leaveLobby() {
-        sendPacket({ type: 'PLAYER_LEAVE', playerId: myId });
-        if (peer) {
-            peer.destroy();
-            peer = null;
-        }
-        if (broadcastChannel) {
-            broadcastChannel.close();
-            broadcastChannel = null;
-        }
-        hostConnection = null;
-        clientConnections.clear();
-        lobbyPlayers.clear();
-        document.getElementById('menu-status').innerText = '';
-        showScreen('MENU');
-    }
-
-    function updateLobbyUI() {
-        document.getElementById('lobby-code-display').innerText = roomCode;
-        document.getElementById('lobby-player-count').innerText = lobbyPlayers.size;
-
-        const listEl = document.getElementById('lobby-player-list');
-        listEl.innerHTML = '';
-
-        lobbyPlayers.forEach(p => {
-            const skin = getSkin(p.skinId);
-            const row = document.createElement('div');
-            row.className = 'player-item';
-            row.innerHTML = `
-                <div class="player-info">
-                    <span class="color-dot" style="background:${skin.body}; width:14px; height:14px;"></span>
-                    <span>${escapeHtml(p.name)} ${p.id === myId ? '(Tu)' : ''}</span>
-                    ${p.isHost ? '<span class="badge badge-host">👑 REGE (HOST)</span>' : ''}
-                </div>
-                <span class="badge ${p.ready ? 'badge-ready' : 'badge-wait'}">
-                    ${p.ready ? 'PREGĂTIT' : 'ÎN AȘTEPTARE'}
-                </span>
-            `;
-            listEl.appendChild(row);
-        });
-
-        const hostBotControls = document.getElementById('host-bot-controls');
-        const startBtn = document.getElementById('btn-start-match');
-        const readyBtn = document.getElementById('btn-toggle-ready');
-
-        if (isHost) {
-            hostBotControls.style.display = 'flex';
-            startBtn.style.display = 'inline-flex';
-            readyBtn.style.display = 'none';
-        } else {
-            hostBotControls.style.display = 'none';
-            startBtn.style.display = 'none';
-            readyBtn.style.display = 'inline-flex';
-            const me = lobbyPlayers.get(myId);
-            if (me) {
-                readyBtn.innerText = me.ready ? '✓ Pregătit (Schimbă)' : 'Pregătit de Luptă!';
-                readyBtn.className = 'btn ' + (me.ready ? 'btn-gold' : 'btn-emerald');
-            }
-        }
-    }
-
-    // =========================================================================
-    // 7. CLASA BANDĂ (LANE) CU CELE 4 BIOMURI MEDIEVALE ȘI OBSTACOLE SPECIFICE
-    // =========================================================================
-    class Lane {
-        constructor(gridY, forceSafe, rng) {
-            this.gridY = gridY;
-            this.biome = getBiomeForRow(gridY);
-            this.obstacles = [];
-            this.safeCols = [];
-            this.powerup = null;
-            this.direction = rng() < 0.5 ? 1 : -1;
-
-            if (forceSafe) {
-                this.type = 'grass';
-            } else {
-                const r = rng();
-                if (r < 0.39) this.type = 'grass';
-                else if (r < 0.77) this.type = 'road';
-                else this.type = 'river';
-            }
-
-            const difficulty = 1 + Math.min(gridY * 0.0075, 0.92);
-
-            if (this.type === 'grass') {
-                this.setupGrass(forceSafe, rng);
-            } else if (this.type === 'road') {
-                this.speed = (84 + rng() * 88) * difficulty;
-                this.setupRoad(rng);
-            } else if (this.type === 'river') {
-                this.direction = -lastRiverDir;
-                lastRiverDir = this.direction;
-                this.speed = (52 + rng() * 54) * difficulty;
-                this.setupRiver(rng);
-            }
-
-            // Artefacte medievale deterministe pe hartă
-            if (!forceSafe && gridY >= 3 && rng() < 0.30) {
-                this.spawnPowerup(rng);
-            }
-        }
-
-        setupGrass(forceSafe, rng) {
-            const treeCols = new Set();
-
-            if (!forceSafe) {
-                const guaranteedPass = lastGrassSafeCols[Math.floor(rng() * lastGrassSafeCols.length)] ?? Math.floor(COLS / 2);
-
-                for (let c = 0; c < COLS; c++) {
-                    if (c === guaranteedPass || (c === guaranteedPass - 1 && c > 1)) continue;
-                    if (c === 0 || c === COLS - 1) {
-                        if (rng() < 0.55) treeCols.add(c);
-                    } else if (rng() < 0.23) {
-                        treeCols.add(c);
-                    }
-                }
-            }
-
-            this.safeCols = [];
-            for (let c = 0; c < COLS; c++) {
-                if (treeCols.has(c)) {
-                    const isMonument = rng() < 0.24; // Excalibur în piatră, Piatră funerară, Rună vikingă sau Brazier cu foc
-                    this.obstacles.push({
-                        x: c * TILE_SIZE,
-                        col: c,
-                        width: TILE_SIZE,
-                        isMonument
-                    });
-                } else {
-                    this.safeCols.push(c);
-                }
-            }
-            if (this.safeCols.length > 0) {
-                lastGrassSafeCols = this.safeCols;
-            }
-        }
-
-        setupRoad(rng) {
-            const isHeavy = rng() < 0.34; // Caleașcă regală, Car de Ciumă, Berbec de Asediu sau Catapultă
-            const vehicleWidth = isHeavy ? TILE_SIZE * 2.15 : TILE_SIZE * 1.40;
-            const count = isHeavy ? 2 : (2 + Math.floor(rng() * 2));
-            this.totalSpan = canvas.width + vehicleWidth * 2;
-            const spacing = this.totalSpan / count;
-
-            const carriageColors = ['#b91c1c', '#d97706', '#7c3aed', '#0f766e', '#eab308'];
-            const color = carriageColors[Math.floor(rng() * carriageColors.length)];
-
-            for (let i = 0; i < count; i++) {
-                const jitter = (rng() * 0.22 - 0.11) * spacing;
-                const initialOffset = i * spacing + jitter;
-                this.obstacles.push({
-                    initialOffset,
-                    x: initialOffset - vehicleWidth,
-                    width: vehicleWidth,
-                    color,
-                    isHeavy
-                });
-            }
-        }
-
-        setupRiver(rng) {
-            const logWidth = (2 + Math.floor(rng() * 2)) * TILE_SIZE;
-            const count = 3;
-            this.totalSpan = canvas.width + logWidth * 2;
-            const spacing = this.totalSpan / count;
-
-            for (let i = 0; i < count; i++) {
-                const initialOffset = i * spacing + (rng() * 14 - 7);
-                this.obstacles.push({
-                    initialOffset,
-                    x: initialOffset - logWidth,
-                    width: logWidth
-                });
-            }
-        }
-
-        spawnPowerup(rng) {
-            let candidateCols = [];
-            if (this.type === 'grass') {
-                candidateCols = this.safeCols.filter(c => c >= 1 && c <= COLS - 2);
-            } else if (this.type === 'road') {
-                for (let c = 2; c <= COLS - 3; c++) candidateCols.push(c);
-            }
-            if (candidateCols.length === 0) return;
-
-            const chosenCol = candidateCols[Math.floor(rng() * candidateCols.length)];
-            const roll = rng();
-            let itemType = 'goblet';
-            if (roll < 0.44) itemType = 'goblet';       // 🏆 Pocalul de Aur (+2 pct)
-            else if (roll < 0.67) itemType = 'shield';  // 🛡️ Scutul Sfânt (6s)
-            else if (roll < 0.85) itemType = 'frost';   // ⏳ Clepsidra Înghețului (4.5s)
-            else itemType = 'scroll';                   // 📜 Pergamentul Regal (+5 pct)
-
-            this.powerup = {
-                col: chosenCol,
-                x: chosenCol * TILE_SIZE,
-                type: itemType,
-                collected: false
-            };
-        }
-
-        updateAtTime(roadTime, riverTime) {
-            if (this.type === 'grass') return;
-            const t = this.type === 'road' ? roadTime : riverTime;
-
-            for (const obs of this.obstacles) {
-                const dist = obs.initialOffset + this.speed * this.direction * t;
-                let wrapped = dist % this.totalSpan;
-                if (wrapped < 0) wrapped += this.totalSpan;
-                obs.x = wrapped - obs.width;
-            }
-        }
-
-        draw(screenY, isTrafficFrozen, isArcaneStorm) {
-            const b = this.biome;
-
-            if (this.type === 'grass') {
-                ctx.fillStyle = this.gridY % 2 === 0 ? b.grassEven : b.grassOdd;
-                ctx.fillRect(0, screenY, canvas.width, TILE_SIZE + 1);
-
-                for (const obs of this.obstacles) {
-                    this.drawGrassObstacle(obs, screenY, b.id);
-                }
-            } else if (this.type === 'road') {
-                ctx.fillStyle = isTrafficFrozen ? b.roadFrozen : b.roadFill;
-                ctx.fillRect(0, screenY, canvas.width, TILE_SIZE + 1);
-
-                // Pietre de pavaj medieval
-                ctx.fillStyle = isTrafficFrozen ? '#22d3ee' : b.roadLine;
-                for (let c = 0; c < COLS; c++) {
-                    ctx.fillRect(c * TILE_SIZE + 6, screenY + 4, 14, 3);
-                    ctx.fillRect(c * TILE_SIZE + 22, screenY + TILE_SIZE - 5, 14, 3);
-                }
-
-                for (const car of this.obstacles) {
-                    this.drawRoadVehicle(car, screenY, b.id);
-                }
-            } else if (this.type === 'river') {
-                ctx.fillStyle = this.gridY % 2 === 0 ? b.riverEven : b.riverOdd;
-                ctx.fillRect(0, screenY, canvas.width, TILE_SIZE + 1);
-
-                // Valuri / Bule de acid / Vene de lavă
-                ctx.fillStyle = b.id === 'volcano' ? '#fde047' : (b.id === 'swamp' ? '#4ade80' : 'rgba(255,255,255,0.18)');
-                const waveOffset = (performance.now() * 0.02 * this.direction) % 40;
-                for (let c = 0; c < COLS; c++) {
-                    ctx.fillRect((c * TILE_SIZE + waveOffset + canvas.width) % canvas.width, screenY + 18, 10, 3);
-                }
-
-                for (const log of this.obstacles) {
-                    this.drawRiverRaft(log, screenY, b.id, isArcaneStorm);
-                }
-            }
-
-            if (this.powerup && !this.powerup.collected) {
-                drawPowerupItem(this.powerup, screenY);
-            }
-        }
-
-        drawGrassObstacle(obs, screenY, biomeId) {
-            ctx.fillStyle = 'rgba(0,0,0,0.32)';
-            ctx.fillRect(obs.x + 6, screenY + 27, 28, 9);
-
-            if (biomeId === 'meadows') {
-                if (obs.isMonument) {
-                    // Excalibur (Sabia în Piatră)
-                    ctx.fillStyle = '#78716c';
-                    ctx.fillRect(obs.x + 8, screenY + 18, 24, 16);
-                    ctx.fillStyle = '#e2e8f0';
-                    ctx.fillRect(obs.x + 18, screenY + 5, 4, 15);
-                    ctx.fillStyle = '#facc15';
-                    ctx.fillRect(obs.x + 13, screenY + 8, 14, 3);
-                } else {
-                    // Stejar Regal
-                    ctx.fillStyle = '#5c3a21';
-                    ctx.fillRect(obs.x + 14, screenY + 21, 12, 15);
-                    ctx.fillStyle = '#14532d';
-                    ctx.fillRect(obs.x + 5, screenY + 4, 30, 20);
-                    ctx.fillStyle = '#16a34a';
-                    ctx.fillRect(obs.x + 8, screenY + 6, 24, 13);
-                }
-            } else if (biomeId === 'swamp') {
-                if (obs.isMonument) {
-                    // Piatră funerară + Ciupercă fosforescentă
-                    ctx.fillStyle = '#57534e';
-                    ctx.fillRect(obs.x + 10, screenY + 10, 20, 24);
-                    ctx.fillStyle = '#4ade80';
-                    ctx.fillRect(obs.x + 14, screenY + 16, 12, 3);
-                } else {
-                    // Copac uscat de mlaștină + spori verzi
-                    ctx.fillStyle = '#3f2e21';
-                    ctx.fillRect(obs.x + 13, screenY + 12, 14, 22);
-                    ctx.fillStyle = '#4c1d95';
-                    ctx.fillRect(obs.x + 6, screenY + 5, 28, 12);
-                    ctx.fillStyle = '#4ade80';
-                    ctx.fillRect(obs.x + 10, screenY + 8, 6, 6);
-                }
-            } else if (biomeId === 'frost') {
-                if (obs.isMonument) {
-                    // Piatră Runică Vikingă strălucitoare
-                    ctx.fillStyle = '#334155';
-                    ctx.fillRect(obs.x + 9, screenY + 7, 22, 27);
-                    ctx.fillStyle = '#22d3ee';
-                    ctx.fillRect(obs.x + 15, screenY + 12, 10, 14);
-                } else {
-                    // Brad înzăpezit
-                    ctx.fillStyle = '#451a03';
-                    ctx.fillRect(obs.x + 15, screenY + 24, 10, 12);
-                    ctx.fillStyle = '#0f766e';
-                    ctx.fillRect(obs.x + 6, screenY + 6, 28, 20);
-                    ctx.fillStyle = '#f8fafc';
-                    ctx.fillRect(obs.x + 9, screenY + 5, 22, 9);
-                }
-            } else {
-                if (obs.isMonument) {
-                    // Brazier Draconic aprins
-                    ctx.fillStyle = '#27272a';
-                    ctx.fillRect(obs.x + 9, screenY + 16, 22, 18);
-                    ctx.fillStyle = '#ea580c';
-                    ctx.fillRect(obs.x + 11, screenY + 6, 18, 12);
-                    ctx.fillStyle = '#fde047';
-                    ctx.fillRect(obs.x + 15, screenY + 8, 10, 7);
-                } else {
-                    // Obelisc de Obsidian cu vene de magmă
-                    ctx.fillStyle = '#18181b';
-                    ctx.fillRect(obs.x + 8, screenY + 5, 24, 29);
-                    ctx.fillStyle = '#f97316';
-                    ctx.fillRect(obs.x + 16, screenY + 9, 8, 20);
-                }
-            }
-        }
-
-        drawRoadVehicle(car, screenY, biomeId) {
-            ctx.fillStyle = 'rgba(0,0,0,0.45)';
-            ctx.fillRect(car.x + 2, screenY + 8, car.width, TILE_SIZE - 10);
-
-            // Roți de lemn / fier
-            ctx.fillStyle = '#451a03';
-            ctx.fillRect(car.x + 5, screenY + 3, 9, 4);
-            ctx.fillRect(car.x + 5, screenY + TILE_SIZE - 7, 9, 4);
-            ctx.fillRect(car.x + car.width - 14, screenY + 3, 9, 4);
-            ctx.fillRect(car.x + car.width - 14, screenY + TILE_SIZE - 7, 9, 4);
-
-            // Șasiu Caleașcă / Catapultă
-            ctx.fillStyle = biomeId === 'volcano' ? '#7f1d1d' : (biomeId === 'swamp' ? '#365314' : car.color);
-            ctx.fillRect(car.x, screenY + 6, car.width, TILE_SIZE - 12);
-
-            // Detalii aurii / armură pe vehicul
-            ctx.fillStyle = '#facc15';
-            ctx.fillRect(car.x + 4, screenY + 9, car.width - 8, 3);
-
-            // Cal / Berbec în partea din față a direcției de mers
-            const frontX = this.direction === 1 ? car.x + car.width - 14 : car.x + 4;
-            ctx.fillStyle = biomeId === 'swamp' ? '#e2e8f0' : (biomeId === 'frost' ? '#94a3b8' : '#78350f');
-            ctx.fillRect(frontX, screenY + 10, 10, TILE_SIZE - 20);
-
-            // Felinare frontale
-            ctx.fillStyle = biomeId === 'swamp' ? '#4ade80' : '#fde047';
-            const lightX = this.direction === 1 ? car.x + car.width - 3 : car.x;
-            ctx.fillRect(lightX, screenY + 8, 3, 5);
-            ctx.fillRect(lightX, screenY + TILE_SIZE - 13, 3, 5);
-        }
-
-        drawRiverRaft(log, screenY, biomeId, isArcaneStorm) {
-            if (biomeId === 'frost') {
-                // Sloi de gheață nordic
-                ctx.fillStyle = '#bae6fd';
-                ctx.fillRect(log.x, screenY + 5, log.width, TILE_SIZE - 10);
-                ctx.fillStyle = '#e0f2fe';
-                ctx.fillRect(log.x + 4, screenY + 8, log.width - 8, TILE_SIZE - 16);
-            } else if (biomeId === 'volcano') {
-                // Placă de bazalt plutitoare pe lavă
-                ctx.fillStyle = '#27272a';
-                ctx.fillRect(log.x, screenY + 5, log.width, TILE_SIZE - 10);
-                ctx.fillStyle = '#52525b';
-                ctx.fillRect(log.x + 4, screenY + 8, log.width - 8, TILE_SIZE - 16);
-                ctx.fillStyle = '#f97316';
-                ctx.fillRect(log.x + 2, screenY + 9, 4, TILE_SIZE - 18);
-                ctx.fillRect(log.x + log.width - 6, screenY + 9, 4, TILE_SIZE - 18);
-            } else {
-                // Plută medievală din bușteni legați cu fier
-                ctx.fillStyle = '#451a03';
-                ctx.fillRect(log.x, screenY + 5, log.width, TILE_SIZE - 10);
-                ctx.fillStyle = '#78350f';
-                ctx.fillRect(log.x + 3, screenY + 8, log.width - 6, TILE_SIZE - 16);
-                ctx.fillStyle = '#94a3b8';
-                ctx.fillRect(log.x + 6, screenY + 6, 4, TILE_SIZE - 12);
-                ctx.fillRect(log.x + log.width - 10, screenY + 6, 4, TILE_SIZE - 12);
-            }
-
-            if (isArcaneStorm) {
-                ctx.strokeStyle = '#22d3ee';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(log.x + 1, screenY + 5, log.width - 2, TILE_SIZE - 10);
-            }
-        }
-    }
-
-    function drawPowerupItem(pw, screenY) {
-        const pulse = Math.sin(performance.now() * 0.006) * 3;
-        const cx = pw.x + TILE_SIZE / 2;
-        const cy = screenY + TILE_SIZE / 2 + pulse * 0.4;
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(cx, cy, 14, 0, Math.PI * 2);
-
-        if (pw.type === 'shield') {
-            ctx.fillStyle = 'rgba(253, 224, 71, 0.30)';
-            ctx.fill();
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#fde047';
-            ctx.stroke();
-            ctx.font = 'bold 14px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('🛡️', cx, cy + 1);
-        } else if (pw.type === 'frost') {
-            ctx.fillStyle = 'rgba(34, 211, 238, 0.28)';
-            ctx.fill();
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#22d3ee';
-            ctx.stroke();
-            ctx.font = 'bold 14px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('⏳', cx, cy + 1);
-        } else if (pw.type === 'scroll') {
-            ctx.fillStyle = 'rgba(16, 185, 129, 0.30)';
-            ctx.fill();
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#34d399';
-            ctx.stroke();
-            ctx.font = 'bold 14px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('📜', cx, cy + 1);
-        } else {
-            // Pocalul de Aur
-            ctx.fillStyle = 'rgba(245, 158, 11, 0.35)';
-            ctx.fill();
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#fde047';
-            ctx.stroke();
-            ctx.font = 'bold 14px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('🏆', cx, cy + 1);
-        }
-        ctx.restore();
-    }
-
-    function ensureLanesUpTo(targetGridY) {
-        while (highestGeneratedRow < targetGridY) {
-            highestGeneratedRow++;
-            const y = highestGeneratedRow;
-            const laneSeed = (matchSeed ^ Math.imul(y + 101, 0x9E3779B1)) >>> 0;
-            const rng = mulberry32(laneSeed);
-            lanes.set(y, new Lane(y, y <= 3, rng));
-        }
-    }
-
-    function getLane(gridY) {
-        if (gridY < 0) return null;
-        if (gridY > highestGeneratedRow) {
-            ensureLanesUpTo(gridY + 6);
-        }
-        return lanes.get(gridY);
-    }
-
-    // =========================================================================
-    // 8. EVENIMENTE MONDIALE ALEATORII ("RANDOM STUFF HAPPENING" - SINCRONIZATE)
-    // =========================================================================
-    function updateWorldEvents(dt, focusRow) {
-        // La fiecare 13 secunde de meci, există o fereastră deterministă de eveniment (durată 5.5s)
-        const PERIOD = 13.0;
-        const DURATION = 5.5;
-        if (elapsedMatchTime < 6.0) {
-            activeWorldEvent = null;
-            document.getElementById('event-banner').style.display = 'none';
-            return;
-        }
-
-        const windowIdx = Math.floor(elapsedMatchTime / PERIOD);
-        const timeInWindow = elapsedMatchTime % PERIOD;
-
-        if (timeInWindow <= DURATION) {
-            if (lastTriggeredEventWindow !== windowIdx) {
-                lastTriggeredEventWindow = windowIdx;
-                const evRng = mulberry32((matchSeed ^ Math.imul(windowIdx + 17, 0x85EBCA6B)) >>> 0);
-                const types = ['dragon', 'arrows', 'gold_rush', 'arcane_storm'];
-                const chosenType = types[Math.floor(evRng() * types.length)];
-
-                let title = '';
-                const targets = [];
-
-                if (chosenType === 'dragon') {
-                    title = '🐉 Umbra Dragonului Mătură Câmpul de Luptă!';
-                    sfx.playDragonRoar();
-                } else if (chosenType === 'arrows') {
-                    title = '🏹 Atenție! Ploaie de Săgeți Regale pe Ținte!';
-                    sfx.playFanfare();
-                    const baseRow = Math.max(2, focusRow);
-                    for (let i = 0; i < 5; i++) {
-                        targets.push({
-                            gridY: baseRow + Math.floor(evRng() * 7) - 1,
-                            col: 1 + Math.floor(evRng() * (COLS - 2))
-                        });
-                    }
-                } else if (chosenType === 'gold_rush') {
-                    title = '🎺 Decretul Regelui: Glorie Dublă (+2 / pas)!';
-                    sfx.playFanfare();
-                } else {
-                    title = '⚡ Furtună Arcană pe Apele Regatului!';
-                    sfx.playFanfare();
-                }
-
-                activeWorldEvent = {
-                    windowIdx,
-                    type: chosenType,
-                    title,
-                    progress: 0,
-                    targets,
-                    arrowsResolved: false
-                };
-
-                const evBanner = document.getElementById('event-banner');
-                document.getElementById('event-banner-title').innerText = title;
-                evBanner.style.display = 'block';
-            }
-
-            if (activeWorldEvent) {
-                activeWorldEvent.progress = timeInWindow / DURATION;
-
-                // La 60% din evenimentul Ploaie de Săgeți (după ~3.3s), săgețile lovesc țintele!
-                if (activeWorldEvent.type === 'arrows' && !activeWorldEvent.arrowsResolved && timeInWindow >= 2.6) {
-                    activeWorldEvent.arrowsResolved = true;
-                    resolveArrowVolleyHits(activeWorldEvent.targets);
-                }
-            }
-        } else {
-            activeWorldEvent = null;
-            document.getElementById('event-banner').style.display = 'none';
-        }
-    }
-
-    function resolveArrowVolleyHits(targets) {
-        for (const t of targets) {
-            spawnSparkParticles(t.gridY, t.col * TILE_SIZE, '#ef4444');
-        }
-
-        lobbyPlayers.forEach(p => {
-            if (!p.alive) return;
-            const isControlledHere = (p.id === myId) || (isHost && p.isBot);
-            if (!isControlledHere) return;
-
-            const pCol = Math.round(p.x / TILE_SIZE);
-            const hit = targets.some(t => t.gridY === p.gridY && t.col === pCol);
-            if (hit) {
-                if (p.shieldUntil > elapsedMatchTime) {
-                    if (p.id === myId) sfx.playShieldDeflect();
-                    addFloatingText(p.gridY, p.x, '🛡️ SĂGEATĂ BLOCATĂ!', '#fde047');
-                } else {
-                    killEntity(p, 'Ai fost străpuns de Ploaia de Săgeți Regale!');
-                }
-            }
-        });
-    }
-
-    // =========================================================================
-    // 9. COLECTARE ARTEFACTE MEDIEVALE & TEXTE PLUTITOARE
-    // =========================================================================
-    function addFloatingText(gridY, x, text, color) {
-        floatingTexts.push({
-            gridY,
-            x: x + TILE_SIZE / 2,
-            offsetY: 0,
-            text,
-            color,
-            alpha: 1
-        });
-    }
-
-    function spawnSparkParticles(gridY, x, color) {
-        for (let i = 0; i < 12; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 40 + Math.random() * 90;
-            particles.push({
-                gridY,
-                x: x + TILE_SIZE / 2,
-                offsetY: 0,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                color,
-                alpha: 1
-            });
-        }
-    }
-
-    function applyPowerupEffect(player, itemType, gridY, col, shouldBroadcast) {
-        player.itemsCollected = (player.itemsCollected || 0) + 1;
-
-        if (itemType === 'shield') {
-            player.shieldUntil = elapsedMatchTime + 6.0;
-            addFloatingText(gridY, player.x, '🛡️ SCUTUL SFÂNT (6s)!', '#fde047');
-        } else if (itemType === 'frost') {
-            trafficFreezeUntil = elapsedMatchTime + 4.5;
-            addFloatingText(gridY, player.x, '⏳ CLEPSIDRA ÎNGHEȚULUI!', '#22d3ee');
-        } else if (itemType === 'scroll') {
-            player.bonusPoints = (player.bonusPoints || 0) + 5;
-            addFloatingText(gridY, player.x, '📜 +5 PERGAMENT REGAL!', '#34d399');
-        } else if (itemType === 'goblet') {
-            player.bonusPoints = (player.bonusPoints || 0) + 2;
-            addFloatingText(gridY, player.x, '🏆 +2 POCAL DE AUR!', '#fde047');
-        }
-
-        recalcPlayerScore(player);
-        spawnSparkParticles(gridY, player.x, '#fde047');
-
-        if (player.id === myId) {
-            sfx.playPowerup(itemType);
-        }
-
-        if (shouldBroadcast && !isSoloMode) {
-            sendPacket({
-                type: 'ITEM_PICKUP',
-                playerId: player.id,
-                gridY,
-                col,
-                itemType
-            });
-            broadcastPlayerState(player);
-        }
-        updateLiveLeaderboard();
-    }
-
-    function checkPowerupPickup(player) {
-        const lane = getLane(player.gridY);
-        if (!lane || !lane.powerup || lane.powerup.collected) return;
-
-        const pCenter = player.x + TILE_SIZE / 2;
-        const itemCenter = lane.powerup.x + TILE_SIZE / 2;
-        if (Math.abs(pCenter - itemCenter) <= TILE_SIZE * 0.65) {
-            lane.powerup.collected = true;
-            applyPowerupEffect(player, lane.powerup.type, player.gridY, lane.powerup.col, true);
-        }
-    }
-
-    function recalcPlayerScore(p) {
-        p.score = (p.maxRow || 0) + (p.bonusPoints || 0);
-        if (p.id === myId) {
-            document.getElementById('hud-my-score').innerText = p.score;
-            if (p.score > personalBest) {
-                personalBest = p.score;
-                document.getElementById('hud-best-score').innerText = personalBest;
-                document.getElementById('menu-best-score').innerText = personalBest;
-            }
-        }
-    }
-
-    // =========================================================================
-    // 10. LOGICĂ MECI, DEPLASARE ȘI COLIZIUNI
-    // =========================================================================
-    function startMatchAsHost() {
-        if (!isHost && !isSoloMode) return;
-        const seed = Math.floor(Math.random() * 2147483647);
-
-        const spawnCols = [6, 7, 5, 8, 4, 9, 3, 10];
-        const spawnAssignments = {};
-        let idx = 0;
-        for (const p of lobbyPlayers.values()) {
-            spawnAssignments[p.id] = spawnCols[idx % spawnCols.length];
-            idx++;
-        }
-
-        if (!isSoloMode) {
-            sendPacket({
-                type: 'START_MATCH',
-                seed,
-                spawnAssignments
-            });
-        }
-        beginMultiplayerMatch(seed, spawnAssignments);
-    }
-
-    function beginMultiplayerMatch(seed, spawnAssignments) {
-        matchSeed = seed;
-        matchStartLocalTime = performance.now();
-        elapsedMatchTime = 0;
-        roadVirtualTime = 0;
-        trafficFreezeUntil = 0;
-        activeWorldEvent = null;
-        lastTriggeredEventWindow = -1;
-        currentDisplayedBiomeId = 'meadows';
-        biomeBannerTimer = 2.6;
-
-        lanes.clear();
-        floatingTexts = [];
-        particles = [];
-        highestGeneratedRow = -1;
-        lastGrassSafeCols = [5, 6, 7, 8];
-        lastRiverDir = 1;
-        ensureLanesUpTo(34);
-
-        cameraY = 0;
-        spectatingPlayerId = null;
-
-        lobbyPlayers.forEach(p => {
-            const startCol = (spawnAssignments && spawnAssignments[p.id] !== undefined) ? spawnAssignments[p.id] : 6;
-            p.col = startCol;
-            p.gridY = 0;
-            p.x = startCol * TILE_SIZE;
-            p.maxRow = 0;
-            p.bonusPoints = 0;
-            p.score = 0;
-            p.itemsCollected = 0;
-            p.shieldUntil = 0;
-            p.alive = true;
-            p.deathReason = '';
-            p.jumpProgress = 1;
-            p.botCooldown = 0.30 + Math.random() * 0.28;
-        });
-
-        document.getElementById('spectator-bar').style.display = 'none';
-        document.getElementById('event-banner').style.display = 'none';
-        document.getElementById('hud-room-label').innerText = isSoloMode ? 'CRUCIADĂ SOLO' : ('CETATE: ' + roomCode);
-        document.getElementById('hud-my-score').innerText = '0';
-
-        updateBiomeHUD(0, true);
-        showScreen('PLAYING');
-        updateLiveLeaderboard();
-    }
-
-    function updateBiomeHUD(gridY, forceShowBanner = false) {
-        const b = getBiomeForRow(gridY);
-        document.getElementById('hud-biome-indicator').innerHTML = `<span>${b.icon}</span><span>${b.name}</span>`;
-
-        if (b.id !== currentDisplayedBiomeId || forceShowBanner) {
-            currentDisplayedBiomeId = b.id;
-            biomeBannerTimer = 2.8;
-            const banner = document.getElementById('biome-banner');
-            document.getElementById('biome-banner-title').innerText = `${b.icon} ${b.name}`;
-            banner.style.display = 'block';
-            if (!forceShowBanner) sfx.playFanfare();
-        }
-    }
-
-    function tryMoveEntity(p, dCol, dRow) {
-        if (!p || !p.alive || appState !== 'PLAYING') return false;
-
-        const targetRow = p.gridY + dRow;
-        if (targetRow < 0) return false;
-
-        const currentCenterCol = Math.round(p.x / TILE_SIZE);
-        const targetCol = currentCenterCol + dCol;
-        if (targetCol < 0 || targetCol >= COLS) return false;
-
-        const targetLane = getLane(targetRow);
-        if (!targetLane) return false;
-
-        if (targetLane.type === 'grass') {
-            const hasTree = targetLane.obstacles.some(t => t.col === targetCol);
-            if (hasTree) return false;
-        }
-
-        p.gridY = targetRow;
-        p.col = targetCol;
-        p.x = targetCol * TILE_SIZE;
-        p.jumpProgress = 0;
-
-        if (p.id === myId) {
-            sfx.playHop();
-            updateBiomeHUD(p.gridY);
-        }
-
-        if (p.gridY > (p.maxRow || 0)) {
-            p.maxRow = p.gridY;
-            // Dacă evenimentul "Goana după Aur" este activ, fiecare rând nou valorează +1 punct suplimentar!
-            if (activeWorldEvent && activeWorldEvent.type === 'gold_rush') {
-                p.bonusPoints = (p.bonusPoints || 0) + 1;
-                if (p.id === myId) {
-                    addFloatingText(p.gridY, p.x, '+2 AUR REGAL!', '#fde047');
-                }
-            }
-            recalcPlayerScore(p);
-        }
-
-        checkPowerupPickup(p);
-        ensureLanesUpTo(p.gridY + 28);
-
-        if (p.id === myId || (isHost && p.isBot)) {
-            broadcastPlayerState(p);
-        }
-        updateLiveLeaderboard();
-        return true;
-    }
-
-    function broadcastPlayerState(p) {
-        if (isSoloMode) return;
-        sendPacket({
-            type: 'PLAYER_STATE',
-            playerId: p.id,
-            col: p.col,
-            gridY: p.gridY,
-            x: Math.round(p.x),
-            maxRow: p.maxRow,
-            bonusPoints: p.bonusPoints,
-            score: p.score,
-            itemsCollected: p.itemsCollected,
-            shieldUntil: p.shieldUntil,
-            alive: p.alive,
-            deathReason: p.deathReason
-        });
-    }
-
-    function killEntity(p, reason) {
-        if (!p.alive) return;
-        p.alive = false;
-        p.deathReason = reason;
-        spawnSparkParticles(p.gridY, p.x, '#ef4444');
-
-        if (p.id === myId) {
-            sfx.playEliminated();
-            activateSpectatorIfNeeded(reason);
-        }
-
-        broadcastPlayerState(p);
-        updateLiveLeaderboard();
-        checkAllPlayersDead();
-    }
-
-    function activateSpectatorIfNeeded(reason) {
-        const aliveOthers = Array.from(lobbyPlayers.values()).filter(pl => pl.alive && pl.id !== myId);
-        if (aliveOthers.length > 0) {
-            spectatingPlayerId = aliveOthers[0].id;
-            document.getElementById('spec-reason').innerText = reason;
-            document.getElementById('spec-target-name').innerText = aliveOthers[0].name;
-            document.getElementById('spectator-bar').style.display = 'block';
-        }
-    }
-
-    function cycleSpectatorTarget() {
-        const aliveOthers = Array.from(lobbyPlayers.values()).filter(pl => pl.alive && pl.id !== myId);
-        if (aliveOthers.length === 0) return;
-        const idx = aliveOthers.findIndex(pl => pl.id === spectatingPlayerId);
-        const next = aliveOthers[(idx + 1) % aliveOthers.length];
-        spectatingPlayerId = next.id;
-        document.getElementById('spec-target-name').innerText = next.name;
-    }
-
-    function checkAllPlayersDead() {
-        if (appState !== 'PLAYING') return;
-        const anyAlive = Array.from(lobbyPlayers.values()).some(pl => pl.alive);
-        if (!anyAlive) {
-            setTimeout(() => {
-                if (appState === 'PLAYING') showMatchResults();
-            }, 500);
-        }
-    }
-
-    // =========================================================================
-    // 11. INTELIGENȚĂ ARTIFICIALĂ CAVALERI BOT
-    // =========================================================================
-    function updateBotAI(bot, dt) {
-        if (!bot.alive) return;
-        bot.botCooldown = (bot.botCooldown || 0.35) - dt;
-        if (bot.botCooldown > 0) return;
-
-        bot.botCooldown = 0.24 + Math.random() * 0.25;
-
-        const curCol = Math.round(bot.x / TILE_SIZE);
-        const hasShield = bot.shieldUntil > elapsedMatchTime;
-        const nextRow = bot.gridY + 1;
-        const nextLane = getLane(nextRow);
-        const curLane = getLane(bot.gridY);
-
-        // Dacă botul se află pe o țintă de săgeți activă, se ferește imediat!
-        if (activeWorldEvent && activeWorldEvent.type === 'arrows' && !activeWorldEvent.arrowsResolved) {
-            const onBullseye = activeWorldEvent.targets.some(t => t.gridY === bot.gridY && t.col === curCol);
-            if (onBullseye) {
-                if (isLaneCellSafe(nextLane, curCol, 0.25, hasShield)) {
-                    if (tryMoveEntity(bot, 0, 1)) return;
-                }
-                for (const d of [-1, 1]) {
-                    if (curCol + d >= 1 && curCol + d < COLS - 1 && isLaneCellSafe(curLane, curCol + d, 0.2, hasShield)) {
-                        if (tryMoveEntity(bot, d, 0)) return;
-                    }
-                }
-            }
-        }
-
-        // Dacă e un artefact chiar lângă bot, îl colectează
-        if (curLane && curLane.powerup && !curLane.powerup.collected) {
-            const diff = curLane.powerup.col - curCol;
-            if (Math.abs(diff) === 1 && isLaneCellSafe(curLane, curLane.powerup.col, 0.25, hasShield)) {
-                if (tryMoveEntity(bot, diff, 0)) return;
-            }
-        }
-
-        if (isLaneCellSafe(nextLane, curCol, 0.32, hasShield)) {
-            if (tryMoveEntity(bot, 0, 1)) return;
-        }
-
-        const dirs = Math.random() < 0.5 ? [-1, 1] : [1, -1];
-        for (const d of dirs) {
-            const sideCol = curCol + d;
-            if (sideCol >= 1 && sideCol < COLS - 1 && isLaneCellSafe(curLane, sideCol, 0.25, hasShield)) {
-                if (tryMoveEntity(bot, d, 0)) return;
-            }
-        }
-    }
-
-    function isLaneCellSafe(lane, col, lookaheadSec, hasShield) {
-        if (!lane) return false;
-        if (lane.type === 'grass') {
-            return !lane.obstacles.some(t => t.col === col);
-        }
-        if (hasShield) return true;
-
-        const cellLeft = col * TILE_SIZE + 6;
-        const cellRight = (col + 1) * TILE_SIZE - 6;
-
-        if (lane.type === 'road') {
-            const speedFactor = elapsedMatchTime < trafficFreezeUntil ? 0.2 : 1.0;
-            const futureShift = lane.speed * speedFactor * lane.direction * lookaheadSec;
-            return !lane.obstacles.some(car => {
-                const cL = car.x + Math.min(0, futureShift) - 8;
-                const cR = car.x + car.width + Math.max(0, futureShift) + 8;
-                return cellLeft < cR && cellRight > cL;
-            });
-        } else if (lane.type === 'river') {
-            const center = col * TILE_SIZE + TILE_SIZE / 2;
-            return lane.obstacles.some(log => center >= log.x + 8 && center <= log.x + log.width - 8);
-        }
-        return true;
-    }
-
-    // =========================================================================
-    // 12. UPDATE FIZICĂ, POWER-UP HUD ȘI RANDARE LA 60 FPS
-    // =========================================================================
-    function updateActivePowerupsHUD() {
-        const me = lobbyPlayers.get(myId);
-        const container = document.getElementById('active-powerups-hud');
-        if (!me) {
-            container.innerHTML = '';
-            return;
-        }
-
-        let html = '';
-        if (me.shieldUntil > elapsedMatchTime) {
-            const rem = me.shieldUntil - elapsedMatchTime;
-            const pct = Math.min(100, (rem / 6.0) * 100);
-            html += `
-                <div class="pw-badge" style="border-color:#fde047;">
-                    <div style="display:flex; justify-content:space-between; color:#fde047;">
-                        <span>🛡️ SCUTUL SFÂNT</span>
-                        <span>${rem.toFixed(1)}s</span>
-                    </div>
-                    <div class="pw-bar-track"><div class="pw-bar-fill" style="width:${pct}%; background:#fde047;"></div></div>
-                </div>
-            `;
-        }
-        if (trafficFreezeUntil > elapsedMatchTime) {
-            const rem = trafficFreezeUntil - elapsedMatchTime;
-            const pct = Math.min(100, (rem / 4.5) * 100);
-            html += `
-                <div class="pw-badge" style="border-color:#22d3ee;">
-                    <div style="display:flex; justify-content:space-between; color:#22d3ee;">
-                        <span>⏳ CLEPSIDRĂ ÎNGHEȚ</span>
-                        <span>${rem.toFixed(1)}s</span>
-                    </div>
-                    <div class="pw-bar-track"><div class="pw-bar-fill" style="width:${pct}%; background:#22d3ee;"></div></div>
-                </div>
-            `;
-        }
-        container.innerHTML = html;
-    }
-
-    function updateGame(dt) {
-        if (appState !== 'PLAYING') return;
-
-        const nowElapsed = (performance.now() - matchStartLocalTime) / 1000;
-        const deltaElapsed = Math.max(0, nowElapsed - elapsedMatchTime);
-        elapsedMatchTime = nowElapsed;
-
-        if (biomeBannerTimer > 0) {
-            biomeBannerTimer -= dt;
-            if (biomeBannerTimer <= 0) {
-                document.getElementById('biome-banner').style.display = 'none';
-            }
-        }
-
-        const isFrozen = elapsedMatchTime < trafficFreezeUntil;
-        roadVirtualTime += deltaElapsed * (isFrozen ? 0.2 : 1.0);
-
-        const minRow = Math.max(0, Math.floor(cameraY / TILE_SIZE) - 4);
-        const maxRow = minRow + ROWS + 10;
-        ensureLanesUpTo(maxRow);
-
-        for (let r = minRow; r <= maxRow; r++) {
-            const lane = lanes.get(r);
-            if (lane) lane.updateAtTime(roadVirtualTime, elapsedMatchTime);
-        }
-
-        // Actualizare particule ambientale specifice biomului curent
-        for (const ap of ambientParticles) {
-            ap.x += ap.vx * dt + Math.sin(elapsedMatchTime * 2 + ap.phase) * 10 * dt;
-            ap.y += ap.vy * dt;
-            if (ap.y < -10) {
-                ap.y = canvas.height + 10;
-                ap.x = Math.random() * canvas.width;
-            }
-            if (ap.x < 0) ap.x = canvas.width;
-            if (ap.x > canvas.width) ap.x = 0;
-        }
-
-        // Actualizare texte plutitoare și particule de impact
-        for (let i = floatingTexts.length - 1; i >= 0; i--) {
-            const ft = floatingTexts[i];
-            ft.offsetY -= 38 * dt;
-            ft.alpha -= 0.72 * dt;
-            if (ft.alpha <= 0) floatingTexts.splice(i, 1);
-        }
-        for (let i = particles.length - 1; i >= 0; i--) {
-            const pt = particles[i];
-            pt.x += pt.vx * dt;
-            pt.offsetY += pt.vy * dt;
-            pt.alpha -= 1.8 * dt;
-            if (pt.alpha <= 0) particles.splice(i, 1);
-        }
-
-        // Fizica fiecărui erou
-        lobbyPlayers.forEach(p => {
-            if (p.jumpProgress < 1) {
-                p.jumpProgress = Math.min(1, p.jumpProgress + dt * 9.5);
-            }
-            if (!p.alive) return;
-
-            const isControlledHere = (p.id === myId) || (isHost && p.isBot);
-            if (!isControlledHere) return;
-
-            if (p.isBot && isHost) {
-                updateBotAI(p, dt);
-            }
-
-            checkPowerupPickup(p);
-
-            const lane = getLane(p.gridY);
-            if (!lane) return;
-
-            const hasShield = p.shieldUntil > elapsedMatchTime;
-            const pLeft = p.x + 9;
-            const pRight = p.x + TILE_SIZE - 9;
-            const pCenter = p.x + TILE_SIZE / 2;
-
-            if (lane.type === 'road') {
-                for (const car of lane.obstacles) {
-                    if (pLeft < car.x + car.width - 4 && pRight > car.x + 4) {
-                        if (hasShield) {
-                            if (!p.lastDeflectTime || elapsedMatchTime - p.lastDeflectTime > 0.45) {
-                                p.lastDeflectTime = elapsedMatchTime;
-                                if (p.id === myId) sfx.playShieldDeflect();
-                                addFloatingText(p.gridY, p.x, '🛡️ AEGIS ACTIV!', '#fde047');
-                                spawnSparkParticles(p.gridY, p.x, '#fde047');
-                            }
-                        } else {
-                            const msg = lane.biome.id === 'volcano'
-                                ? 'Ai fost zdrobit de o Catapultă Draconică!'
-                                : 'Ai fost călcat de o Caleașcă Regală!';
-                            killEntity(p, msg);
-                            return;
-                        }
-                    }
-                }
-            } else if (lane.type === 'river') {
-                let onLog = null;
-                for (const log of lane.obstacles) {
-                    if (pCenter >= log.x - 4 && pCenter <= log.x + log.width + 4) {
-                        onLog = log;
-                        break;
-                    }
-                }
-                if (onLog) {
-                    p.x += lane.speed * lane.direction * dt;
-                    p.col = Math.round(p.x / TILE_SIZE);
-                    if (p.x < -12 || p.x + TILE_SIZE > canvas.width + 12) {
-                        killEntity(p, 'Ai fost dus de curent în afara regatului!');
-                        return;
-                    }
-                } else if (hasShield) {
-                    p.col = Math.round(p.x / TILE_SIZE);
-                } else {
-                    const waterMsg = lane.biome.id === 'volcano'
-                        ? 'Ai căzut în râul de lavă topită!'
-                        : (lane.biome.id === 'swamp' ? 'Ai căzut în mlaștina acidă!' : 'Ai căzut în șanțul cu apă al cetății!');
-                    killEntity(p, waterMsg);
-                    return;
-                }
-            }
-        });
-
-        // Cameră și Focus
-        const me = lobbyPlayers.get(myId);
-        let focusPlayer = me;
-
-        if (!me || !me.alive) {
-            const aliveOthers = Array.from(lobbyPlayers.values()).filter(pl => pl.alive);
-            if (aliveOthers.length > 0) {
-                focusPlayer = lobbyPlayers.get(spectatingPlayerId) || aliveOthers[0];
-                if (!focusPlayer.alive) {
-                    focusPlayer = aliveOthers[0];
-                    spectatingPlayerId = focusPlayer.id;
-                    document.getElementById('spec-target-name').innerText = focusPlayer.name;
-                }
-            }
-        }
-
-        if (focusPlayer) {
-            const targetCamY = Math.max(0, (focusPlayer.gridY - 4) * TILE_SIZE);
-            cameraY += (targetCamY - cameraY) * Math.min(1, dt * 8.5);
-
-            if (me && me.alive && me.maxRow > 0) {
-                cameraY += 20.5 * dt;
-                const myScreenY = canvas.height - (me.gridY + 1) * TILE_SIZE + cameraY;
-                if (myScreenY > canvas.height + 12) {
-                    killEntity(me, 'Ai rămas în urma oștirii!');
-                }
-            }
-
-            updateWorldEvents(dt, focusPlayer.gridY);
-        }
-
-        updateActivePowerupsHUD();
-
-        syncAccumulator += dt;
-        if (syncAccumulator >= 0.07) {
-            syncAccumulator = 0;
-            if (me && me.alive) {
-                const l = getLane(me.gridY);
-                if (l && l.type === 'river') broadcastPlayerState(me);
-            }
-        }
-    }
-
-    // =========================================================================
-    // 13. RANDARE CANVAS (BIOMURI, VIZIBILITATE MAXIMĂ EROI, EVENIMENTE)
-    // =========================================================================
-    function drawGame() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        const isFrozen = elapsedMatchTime < trafficFreezeUntil;
-        const isArcaneStorm = activeWorldEvent && activeWorldEvent.type === 'arcane_storm';
-        const startRow = Math.max(0, Math.floor(cameraY / TILE_SIZE) - 2);
-        const endRow = startRow + ROWS + 4;
-
-        for (let r = startRow; r <= endRow; r++) {
-            const lane = getLane(r);
-            if (!lane) continue;
-            const screenY = canvas.height - (r + 1) * TILE_SIZE + cameraY;
-            lane.draw(screenY, isFrozen, isArcaneStorm);
-        }
-
-        // Desenare Ținte pentru Ploaia de Săgeți (dacă evenimentul este activ)
-        if (activeWorldEvent && activeWorldEvent.type === 'arrows') {
-            drawArrowVolleyTargets(activeWorldEvent);
-        }
-
-        // Sortăm jucătorii astfel încât jucătorul local să fie desenat mereu deasupra
-        const sortedPlayers = Array.from(lobbyPlayers.values()).sort((a, b) => {
-            if (a.id === myId) return 1;
-            if (b.id === myId) return -1;
-            return b.gridY - a.gridY;
-        });
-
-        for (const p of sortedPlayers) {
-            drawHeroCharacter(p);
-        }
-
-        // Particule ambientale (Licurici, Spori, Ninsoare, Scântei de Lavă)
-        const activeBiome = BIOMES.find(b => b.id === currentDisplayedBiomeId) || BIOMES[0];
-        ctx.save();
-        ctx.fillStyle = activeBiome.ambientColor;
-        ctx.globalAlpha = 0.55;
-        for (const ap of ambientParticles) {
-            ctx.beginPath();
-            ctx.arc(ap.x, ap.y, ap.size, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.restore();
-
-        // Efectul spectaculos "Umbra Dragonului" (Dragon Flyby)
-        if (activeWorldEvent && activeWorldEvent.type === 'dragon') {
-            drawDragonFlyby(activeWorldEvent.progress);
-        }
-
-        // Efectul "Furtună Arcană" sau "Goana după Aur" pe marginile ecranului
-        if (activeWorldEvent && activeWorldEvent.type === 'gold_rush') {
-            ctx.save();
-            ctx.strokeStyle = 'rgba(253, 224, 71, 0.55)';
-            ctx.lineWidth = 8;
-            ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
-            ctx.restore();
-        } else if (isArcaneStorm && Math.sin(performance.now() * 0.03) > 0.85) {
-            ctx.save();
-            ctx.fillStyle = 'rgba(34, 211, 238, 0.14)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.restore();
-        }
-
-        // Particule de impact / colectare
-        for (const pt of particles) {
-            const baseScreenY = canvas.height - (pt.gridY + 1) * TILE_SIZE + cameraY + TILE_SIZE / 2;
-            ctx.save();
-            ctx.globalAlpha = Math.max(0, pt.alpha);
-            ctx.fillStyle = pt.color;
-            ctx.fillRect(pt.x - 3, baseScreenY + pt.offsetY - 3, 6, 6);
-            ctx.restore();
-        }
-
-        // Texte plutitoare
-        for (const ft of floatingTexts) {
-            const baseScreenY = canvas.height - (ft.gridY + 1) * TILE_SIZE + cameraY;
-            ctx.save();
-            ctx.globalAlpha = Math.max(0, ft.alpha);
-            ctx.font = '900 13px Inter, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillStyle = '#000000';
-            ctx.fillText(ft.text, ft.x + 1.5, baseScreenY + ft.offsetY + 1.5);
-            ctx.fillStyle = ft.color;
-            ctx.fillText(ft.text, ft.x, baseScreenY + ft.offsetY);
-            ctx.restore();
-        }
-    }
-
-    function drawArrowVolleyTargets(ev) {
-        for (const t of ev.targets) {
-            const screenY = canvas.height - (t.gridY + 1) * TILE_SIZE + cameraY;
-            const cx = t.col * TILE_SIZE + TILE_SIZE / 2;
-            const cy = screenY + TILE_SIZE / 2;
-
-            ctx.save();
-            if (!ev.arrowsResolved) {
-                // Cercuri de țintă pulsatorii înainte de impact
-                const radius = 16 * (1 - ev.progress * 0.5);
-                ctx.beginPath();
-                ctx.arc(cx, cy, 17, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
-                ctx.fill();
-                ctx.lineWidth = 2.5;
-                ctx.strokeStyle = '#fde047';
-                ctx.stroke();
-
-                ctx.beginPath();
-                ctx.arc(cx, cy, Math.max(4, radius), 0, Math.PI * 2);
-                ctx.strokeStyle = '#ef4444';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            } else {
-                // Săgeți înfipte în pământ după impact
-                ctx.strokeStyle = '#fde047';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(cx - 10, cy - 16);
-                ctx.lineTo(cx, cy + 4);
-                ctx.moveTo(cx + 8, cy - 16);
-                ctx.lineTo(cx + 2, cy + 5);
-                ctx.stroke();
-            }
-            ctx.restore();
-        }
-    }
-
-    function drawDragonFlyby(progress) {
-        const dragX = -140 + progress * (canvas.width + 280);
-        const dragY = canvas.height * 0.85 - progress * (canvas.height * 0.9);
-        const wingBeat = Math.sin(progress * Math.PI * 10) * 28;
-
-        ctx.save();
-        // Aură de foc pe marginile ecranului
-        ctx.strokeStyle = 'rgba(249, 115, 22, 0.45)';
-        ctx.lineWidth = 12;
-        ctx.strokeRect(0, 0, canvas.width, canvas.height);
-
-        // Umbra uriașă a dragonului pe câmpul de luptă
-        ctx.translate(dragX, dragY);
-        ctx.rotate(-Math.PI / 4);
-        ctx.fillStyle = 'rgba(10, 5, 5, 0.58)';
-
-        // Corp dragon
-        ctx.fillRect(-20, -70, 40, 140);
-        // Cap și coarne
-        ctx.fillRect(-16, -105, 32, 35);
-        ctx.fillRect(-24, -118, 8, 16);
-        ctx.fillRect(16, -118, 8, 16);
-        // Aripi gigantice animate
-        ctx.beginPath();
-        ctx.moveTo(-20, -30);
-        ctx.lineTo(-145, -10 + wingBeat);
-        ctx.lineTo(-70, 45);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(20, -30);
-        ctx.lineTo(145, -10 + wingBeat);
-        ctx.lineTo(70, 45);
-        ctx.closePath();
-        ctx.fill();
-
-        // Ochi de foc
-        ctx.fillStyle = '#fde047';
-        ctx.fillRect(-10, -96, 6, 6);
-        ctx.fillRect(4, -96, 6, 6);
-        ctx.restore();
-    }
-
-    // Desenare Erou cu VIZIBILITATE MAXIMĂ (Inel de Țintă Aurit + Contur + Banner)
-    function drawHeroCharacter(p) {
-        const screenY = canvas.height - (p.gridY + 1) * TILE_SIZE + cameraY;
-        const skin = getSkin(p.skinId);
-
-        // Indicator la marginea ecranului pentru tovarășii aflați mult în față/spate
-        if (p.id !== myId && p.alive && (screenY < -TILE_SIZE || screenY > canvas.height)) {
-            const clampedY = screenY < 0 ? 64 : canvas.height - 92;
-            const arrow = screenY < 0 ? '▲' : '▼';
-            ctx.save();
-            ctx.fillStyle = 'rgba(18, 15, 12, 0.94)';
-            ctx.strokeStyle = '#fde047';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.roundRect(p.x - 20, clampedY - 14, 80, 24, 6);
-            ctx.fill();
-            ctx.stroke();
-            ctx.fillStyle = '#fde047';
-            ctx.font = 'bold 11px Inter, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(`${arrow} ${p.name.substring(0, 8)}`, p.x + 20, clampedY + 2);
-            ctx.restore();
-            return;
-        }
-
-        if (screenY < -TILE_SIZE * 2 || screenY > canvas.height + TILE_SIZE * 2) return;
-
-        ctx.save();
-        if (!p.alive) {
-            ctx.globalAlpha = 0.42;
-        }
-
-        const hasShield = p.shieldUntil > elapsedMatchTime;
-        const lane = getLane(p.gridY);
-
-        // Podul Sfânt sub jucător când pășește pe apă/acid/lavă cu Scutul Sfânt activ
-        if (hasShield && lane && lane.type === 'river') {
-            ctx.fillStyle = 'rgba(253, 224, 71, 0.55)';
-            ctx.strokeStyle = '#fde047';
-            ctx.lineWidth = 2;
-            ctx.fillRect(p.x + 2, screenY + 5, TILE_SIZE - 4, TILE_SIZE - 10);
-            ctx.strokeRect(p.x + 2, screenY + 5, TILE_SIZE - 4, TILE_SIZE - 10);
-        }
-
-        const bounce = (p.jumpProgress !== undefined && p.jumpProgress < 1)
-            ? Math.sin(p.jumpProgress * Math.PI) * 10
-            : 0;
-        const drawY = screenY - bounce;
-        const centerX = p.x + TILE_SIZE / 2;
-        const centerY = drawY + TILE_SIZE / 2;
-
-        // 1. INEL PULSATORIU DE VIZIBILITATE MAXIMĂ SUB JUCĂTORUL PROPRIU
-        if (p.id === myId && p.alive) {
-            const pulseRadius = 19 + Math.sin(performance.now() * 0.008) * 2.5;
-            ctx.save();
-            // Fascicul vertical subtil de lumină regală
-            const grad = ctx.createLinearGradient(centerX, drawY - 22, centerX, screenY + TILE_SIZE);
-            grad.addColorStop(0, 'rgba(253, 224, 71, 0)');
-            grad.addColorStop(0.6, 'rgba(253, 224, 71, 0.22)');
-            grad.addColorStop(1, 'rgba(245, 158, 11, 0.45)');
-            ctx.fillStyle = grad;
-            ctx.fillRect(p.x + 4, drawY - 16, TILE_SIZE - 8, TILE_SIZE + 14);
-
-            // Inel dublu sub picioare (auriu + contur negru)
-            ctx.beginPath();
-            ctx.arc(centerX, screenY + 24, pulseRadius, 0, Math.PI * 2);
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 4.5;
-            ctx.stroke();
-            ctx.strokeStyle = '#fde047';
-            ctx.lineWidth = 2.5;
-            ctx.stroke();
-            ctx.restore();
-        }
-
-        // Umbră la sol
-        ctx.fillStyle = 'rgba(0,0,0,0.45)';
-        ctx.fillRect(p.x + 7, screenY + 27, 26, 9);
-
-        // Aură sferică pentru Scutul Sfânt
-        if (hasShield) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, 21, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(253, 224, 71, 0.25)';
-            ctx.fill();
-            ctx.lineWidth = 2.5;
-            ctx.strokeStyle = '#fde047';
-            ctx.stroke();
-            ctx.restore();
-        }
-
-        // 2. CONTUR ÎNTUNECAT PUTERNIC ÎN JURUL EROULUI (nu se pierde niciodată în decor)
-        ctx.fillStyle = '#090705';
-        ctx.fillRect(p.x + 6, drawY + 5, 28, 28);
-
-        // Corpul / Armura Eroului
-        ctx.fillStyle = skin.body;
-        ctx.fillRect(p.x + 8, drawY + 7, 24, 24);
-
-        // Mantie / Umeri
-        ctx.fillStyle = skin.secondary;
-        ctx.fillRect(p.x + 5, drawY + 13, 4, 12);
-        ctx.fillRect(p.x + 31, drawY + 13, 4, 12);
-
-        // Coif / Creastă / Pălărie de vrăjitor / Coroană
-        ctx.fillStyle = skin.accent;
-        if (skin.id === 'viking') {
-            // Coarne de viking
-            ctx.fillRect(p.x + 6, drawY + 2, 5, 6);
-            ctx.fillRect(p.x + 29, drawY + 2, 5, 6);
-        } else if (skin.id === 'king') {
-            // Coroană regală cu 3 vârfuri
-            ctx.fillRect(p.x + 10, drawY + 1, 20, 6);
-        } else {
-            ctx.fillRect(p.x + 13, drawY + 1, 14, 6);
-        }
-
-        // Vizieră / Cioc de doctor al ciumei
-        ctx.fillStyle = skin.visor;
-        ctx.fillRect(p.x + 12, drawY + 11, 16, 5);
-
-        // Ochi / fantă vizieră
-        ctx.fillStyle = '#090705';
-        ctx.fillRect(p.x + 13, drawY + 12, 14, 2);
-
-        // 3. ETICHETĂ FLOTANTĂ CU NUME + SCOR DEASUPRA CAPULUI
-        const shieldIcon = hasShield ? '🛡️ ' : '';
-        const label = `${shieldIcon}${p.name} (${p.score})`;
-        ctx.font = '800 11px Inter, sans-serif';
-        const textW = ctx.measureText(label).width + 12;
-        const tagX = centerX - textW / 2;
-        const tagY = drawY - 18;
-
-        ctx.fillStyle = p.id === myId ? '#fde047' : 'rgba(18, 15, 12, 0.92)';
-        ctx.strokeStyle = p.id === myId ? '#000000' : '#f59e0b';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.roundRect(tagX, tagY, textW, 16, 5);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = p.id === myId ? '#090705' : '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.fillText(label, centerX, tagY + 11.5);
-
-        ctx.restore();
-    }
-
-    // =========================================================================
-    // 14. CLASAMENT LIVE & PODIUMUL REGAL
-    // =========================================================================
-    function updateLiveLeaderboard() {
-        const container = document.getElementById('hud-lb-content');
-        const sorted = Array.from(lobbyPlayers.values()).sort((a, b) => b.score - a.score);
-        container.innerHTML = sorted.map((p, idx) => {
-            const skin = getSkin(p.skinId);
-            const statusIcon = p.alive ? '⚔️' : '💀';
-            return `
-                <div class="hud-lb-row ${p.alive ? '' : 'dead'}">
-                    <div class="hud-lb-name">
-                        <span style="color:#fde047;">${idx + 1}.</span>
-                        <span class="color-dot" style="background:${skin.body}"></span>
-                        <span>${escapeHtml(p.name)}</span>
-                    </div>
-                    <span style="color:#fff;">${p.score} ${statusIcon}</span>
-                </div>
-            `;
-        }).join('');
-    }
-
-    function showMatchResults() {
-        showScreen('RESULTS');
-        const sorted = Array.from(lobbyPlayers.values()).sort((a, b) => b.score - a.score);
-        const winner = sorted[0];
-
-        document.getElementById('results-winner-sub').innerText = winner
-            ? `👑 Campionul Regatului: ${winner.name} (${winner.score} Glorie)`
-            : 'Cruciadă încheiată';
-
-        const podiumEl = document.getElementById('podium-container');
-        podiumEl.innerHTML = sorted.map((p, idx) => {
-            const skin = getSkin(p.skinId);
-            const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-            const rankClass = idx < 3 ? `rank-${idx + 1}` : '';
-            const reachedBiome = getBiomeForRow(p.maxRow || 0);
-            return `
-                <div class="podium-row ${rankClass}">
-                    <div>
-                        <div style="font-weight:900; font-size:14px; display:flex; align-items:center; gap:8px;">
-                            <span>${medal}</span>
-                            <span class="color-dot" style="background:${skin.body}; width:12px; height:12px;"></span>
-                            <span>${escapeHtml(p.name)} ${p.id === myId ? '(Tu)' : ''}</span>
-                        </div>
-                        <div class="podium-death">
-                            ${escapeHtml(p.deathReason || 'Căzut în luptă')} • ${reachedBiome.icon} ${reachedBiome.name} • 🏆 ${p.itemsCollected || 0} Artefacte
-                        </div>
-                    </div>
-                    <div style="font-size:19px; font-weight:900; color:#fde047;">${p.score} pct</div>
-                </div>
-            `;
-        }).join('');
-
-        const rematchBtn = document.getElementById('btn-rematch-host');
-        const backLobbyBtn = document.getElementById('btn-back-to-lobby');
-
-        if (isSoloMode) {
-            rematchBtn.style.display = 'inline-flex';
-            rematchBtn.innerText = '🔄 Cruciadă Nouă';
-            backLobbyBtn.innerText = '🏰 Meniu Principal';
-        } else {
-            backLobbyBtn.innerText = '🏰 Înapoi în Lobby';
-            rematchBtn.style.display = isHost ? 'inline-flex' : 'none';
-            rematchBtn.innerText = '🔄 Bătălie Nouă';
-        }
-    }
-
-    // =========================================================================
-    // 15. CONTROALE TASTATURĂ, D-PAD, SWIPE ȘI BUTOANE
-    // =========================================================================
-    window.addEventListener('keydown', (e) => {
-        if (e.repeat) return;
-
-        if (appState === 'PLAYING') {
-            const me = lobbyPlayers.get(myId);
-            if (e.key === 'Tab') {
-                e.preventDefault();
-                cycleSpectatorTarget();
-                return;
-            }
-            if (!me || !me.alive) return;
-
-            let dir = null;
-            switch (e.key) {
-                case 'ArrowUp':
-                case 'w':
-                case 'W':
-                case ' ':
-                    dir = 'up';
-                    tryMoveEntity(me, 0, 1);
-                    break;
-                case 'ArrowDown':
-                case 's':
-                case 'S':
-                    dir = 'down';
-                    tryMoveEntity(me, 0, -1);
-                    break;
-                case 'ArrowLeft':
-                case 'a':
-                case 'A':
-                    dir = 'left';
-                    tryMoveEntity(me, -1, 0);
-                    break;
-                case 'ArrowRight':
-                case 'd':
-                case 'D':
-                    dir = 'right';
-                    tryMoveEntity(me, 1, 0);
-                    break;
-            }
-            if (dir) {
-                e.preventDefault();
-                const btn = document.querySelector(`.dpad-btn[data-dir="${dir}"]`);
-                if (btn) {
-                    btn.classList.add('pressed');
-                    setTimeout(() => btn.classList.remove('pressed'), 95);
-                }
-            }
-        } else if (appState === 'RESULTS' && (e.key === 'Enter' || e.key === ' ')) {
-            if (isHost || isSoloMode) startMatchAsHost();
-        }
-    });
-
-    // Controale D-Pad pe ecran
-    document.querySelectorAll('.dpad-btn').forEach(btn => {
-        btn.addEventListener('pointerdown', (e) => {
-            e.preventDefault();
-            const me = lobbyPlayers.get(myId);
-            if (!me || !me.alive || appState !== 'PLAYING') return;
-            const dir = btn.getAttribute('data-dir');
-            if (dir === 'up') tryMoveEntity(me, 0, 1);
-            if (dir === 'down') tryMoveEntity(me, 0, -1);
-            if (dir === 'left') tryMoveEntity(me, -1, 0);
-            if (dir === 'right') tryMoveEntity(me, 1, 0);
-        });
-    });
-
-    // Suport Tap / Swipe pe Canvas
-    let touchStartX = null;
-    let touchStartY = null;
-    canvas.addEventListener('pointerdown', (e) => {
-        if (appState !== 'PLAYING') return;
-        touchStartX = e.clientX;
-        touchStartY = e.clientY;
-    });
-    canvas.addEventListener('pointerup', (e) => {
-        if (appState !== 'PLAYING' || touchStartX === null || touchStartY === null) return;
-        const me = lobbyPlayers.get(myId);
-        if (me && me.alive) {
-            const dx = e.clientX - touchStartX;
-            const dy = e.clientY - touchStartY;
-            const dist = Math.hypot(dx, dy);
-            if (dist < 18) tryMoveEntity(me, 0, 1);
-            else if (Math.abs(dx) > Math.abs(dy)) tryMoveEntity(me, dx > 0 ? 1 : -1, 0);
-            else tryMoveEntity(me, 0, dy > 0 ? -1 : 1);
-        }
-        touchStartX = null;
-        touchStartY = null;
-    });
-
-    // Adăugare / Eliminare Cavaleri AI în Lobby
-    document.getElementById('btn-add-bot').addEventListener('click', () => {
-        if (!isHost || lobbyPlayers.size >= 8) return;
-        const botIndex = Array.from(lobbyPlayers.values()).filter(p => p.isBot).length;
-        const botId = 'bot_' + Math.random().toString(36).substring(2, 7);
-        const botSkin = SKINS[(lobbyPlayers.size) % SKINS.length].id;
-        const botName = BOT_NAMES[botIndex % BOT_NAMES.length];
-
-        lobbyPlayers.set(botId, createDefaultPlayerObj(botId, botName, botSkin, false, true));
-        broadcastLobbyState();
-    });
-
-    document.getElementById('btn-remove-bot').addEventListener('click', () => {
-        if (!isHost) return;
-        const bots = Array.from(lobbyPlayers.values()).filter(p => p.isBot);
-        if (bots.length > 0) {
-            lobbyPlayers.delete(bots[bots.length - 1].id);
-            broadcastLobbyState();
-        }
-    });
-
-    // Evenimente Butoane Meniu & Lobby
-    document.getElementById('btn-create-lobby').addEventListener('click', createLobby);
-
-    document.getElementById('btn-join-lobby').addEventListener('click', () => {
-        joinLobby(document.getElementById('join-code-input').value);
-    });
-
-    document.getElementById('btn-solo-play').addEventListener('click', () => {
-        myName = nameInput.value.trim() || myName;
-        isSoloMode = true;
-        isHost = true;
-        lobbyPlayers.clear();
-        lobbyPlayers.set(myId, createDefaultPlayerObj(myId, myName, mySkinId, true, false));
-        lobbyPlayers.set('bot_solo_1', createDefaultPlayerObj('bot_solo_1', BOT_NAMES[0], 'wizard', false, true));
-        lobbyPlayers.set('bot_solo_2', createDefaultPlayerObj('bot_solo_2', BOT_NAMES[2], 'viking', false, true));
-        startMatchAsHost();
-    });
-
-    document.getElementById('btn-copy-code').addEventListener('click', copyRoomCodeToClipboard);
-
-    document.getElementById('btn-toggle-ready').addEventListener('click', () => {
-        const me = lobbyPlayers.get(myId);
-        if (!me) return;
-        me.ready = !me.ready;
-        updateLobbyUI();
-        sendPacket({
-            type: 'PLAYER_READY_TOGGLE',
-            playerId: myId,
-            ready: me.ready,
-            skinId: mySkinId,
-            name: myName
-        });
-    });
-
-    document.getElementById('btn-start-match').addEventListener('click', startMatchAsHost);
-    document.getElementById('btn-leave-lobby').addEventListener('click', leaveLobby);
-    document.getElementById('btn-switch-spec').addEventListener('click', cycleSpectatorTarget);
-
-    document.getElementById('btn-rematch-host').addEventListener('click', () => {
-        if (isHost || isSoloMode) startMatchAsHost();
-    });
-
-    document.getElementById('btn-back-to-lobby').addEventListener('click', () => {
-        if (isSoloMode) {
-            showScreen('MENU');
-        } else if (isHost) {
-            sendPacket({ type: 'RETURN_TO_LOBBY' });
-            showScreen('LOBBY');
-            updateLobbyUI();
-        } else {
-            showScreen('LOBBY');
-            updateLobbyUI();
-        }
-    });
-
-    // =========================================================================
-    // 16. BUCLA PRINCIPALĂ DE JOC (GAME LOOP)
-    // =========================================================================
-    function gameLoop(now) {
-        const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
-        lastFrameTime = now;
-
-        if (appState === 'PLAYING') {
-            updateGame(dt);
-            drawGame();
-        }
-
-        requestAnimationFrame(gameLoop);
-    }
-
-    window.onload = () => {
-        ensureLanesUpTo(24);
-        drawGame();
-        requestAnimationFrame(gameLoop);
-    };
-})();
-</script>
-</body>
-</html>
+            letter-spacing: 4px;
+            color
